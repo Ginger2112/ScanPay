@@ -34,11 +34,11 @@ function logEvent(orderId, type, detail = '') {
   bus.emit('*', { orderId, type, detail, at: now() });
 }
 
-export function createOrder({ amount, items = [], customer = {}, method = 'upi', ref = null, ref_name = null, merchant_id = DEFAULT_ID, amount_locked = false }) {
+export function createOrder({ amount, items = [], customer = {}, method = 'upi', ref = null, ref_name = null, merchant_id = DEFAULT_ID, amount_locked = false, return_url = null }) {
   const id = genId();
-  db.prepare(`INSERT INTO orders (id, amount, items_json, customer_json, method, status, created_at, ref, ref_name, merchant_id, amount_locked)
-              VALUES (?,?,?,?,?, 'created', ?,?,?,?,?)`)
-    .run(id, Number(amount), JSON.stringify(items), JSON.stringify(customer), method, now(), ref, ref_name, merchant_id, amount_locked ? 1 : 0);
+  db.prepare(`INSERT INTO orders (id, amount, items_json, customer_json, method, status, created_at, ref, ref_name, merchant_id, amount_locked, return_url)
+              VALUES (?,?,?,?,?, 'created', ?,?,?,?,?,?)`)
+    .run(id, Number(amount), JSON.stringify(items), JSON.stringify(customer), method, now(), ref, ref_name, merchant_id, amount_locked ? 1 : 0, return_url);
   logEvent(id, 'created', `amount=${amount} method=${method}${ref ? ' ref=' + ref : ''}`);
   return getOrder(id);
 }

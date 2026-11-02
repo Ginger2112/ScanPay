@@ -28,7 +28,7 @@
 const qs = new URLSearchParams(location.search);
 const id = qs.get('id') || qs.get('order'); // older API links used ?order=
 const box = document.getElementById('box');
-let timerInt;
+let timerInt, order0 = null;
 // Order items / ids come from a public API, so they're escaped before going into HTML.
 const esc = (s)=>String(s??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const badge = (s)=>`<span class="badge b-${esc(s)}">${esc(String(s).replace('_',' '))}</span>`;
@@ -36,6 +36,7 @@ const badge = (s)=>`<span class="badge b-${esc(s)}">${esc(String(s).replace('_',
 async function init(){
   const order = await (await fetch('/api/orders/'+id)).json();
   if(order.error){ box.innerHTML = '<p>Order not found.</p>'; return; }
+  order0 = order;
   // Details already given (verified, or past the QR stage) -> don't ask again on reload.
   if((order.customer && order.customer.verified) || order.status !== 'created') return showPayment();
   showDetails(order);
@@ -55,6 +56,11 @@ function showDetails(order){
       <span>Send me order updates & offers on WhatsApp.</span></label>
     <button onclick="submitDetails()">Continue</button>
     <p class="muted" id="dErr" style="text-align:center;margin-top:10px"></p>`;
+  // The merchant already knows who's paying (e.g. a signed-in ChargeOS driver): fill it in.
+  const c = order.customer || {};
+  if(c.name) c_name.value = c.name;
+  if(c.phone) c_phone.value = c.phone;
+  if(c.email) c_email.value = c.email;
 }
 async function submitDetails(){
   const body={ name:c_name.value.trim(), phone:c_phone.value.trim(), email:c_email.value.trim(), consent:c_consent.checked };
@@ -93,6 +99,7 @@ async function showPayment(){
   if(['paid','confirmed'].includes(o.status)) return showConfirmed();
   if(o.status==='utr_submitted') { showVerifying(); listen(); return; }
   const pay = Number(o.pay_amount ?? o.amount);
+  if(order0 && order0.test_mode) return showTestPay(o, pay);
   const { data, svg } = await (await fetch('/api/orders/'+id+'/qr')).json();
   box.innerHTML = `
     <div class="eyebrow" style="justify-content:center"><svg class="spark"><use href="#spark"/></svg>Pay with UPI · ${badge(o.status)}</div>
@@ -113,11 +120,42 @@ async function showPayment(){
     <p class="muted" style="text-align:center;margin-top:10px;font-size:11px">Order <code>${esc(o.id)}</code></p>`;
   countdown(o.expires_at); listen();
 }
+// Test-mode merchant: no QR (its UPI ID is fake), a test button stands in for the bank credit.
+function showTestPay(o, pay){
+  box.innerHTML = `
+    <div class="eyebrow" style="justify-content:center"><svg class="spark"><use href="#spark"/></svg>Test mode · ${badge(o.status)}</div>
+    <p style="text-align:center;margin:0 0 10px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px"><b>TEST MODE</b> · no real money moves</p>
+    <div class="pill" style="display:block;width:fit-content;margin:0 auto 8px">${esc(o.items.map(i=>i&&i.name).join(', '))}</div>
+    <div class="amount">₹${pay.toFixed(2)}</div>
+    <p class="muted" style="text-align:center;margin:2px 0 14px">${esc(order0.merchant_name||'')} is testing payments. Tap to act like the bank confirmed it.</p>
+    <button id="tpay" onclick="testPay()">Pay ₹${pay.toFixed(2)} (test)</button>
+    <p class="timer" id="timer" style="margin-top:16px"></p>
+    <p class="muted" id="tErr" style="text-align:center;margin-top:8px"></p>
+    <p class="muted" style="text-align:center;margin-top:10px;font-size:11px">Order <code>${esc(o.id)}</code></p>`;
+  countdown(o.expires_at); listen();
+}
+async function testPay(){
+  tpay.disabled = true; tpay.textContent = 'Confirming…';
+  const r = await (await fetch('/api/orders/'+id+'/test-pay',{method:'POST'})).json().catch(()=>({error:'network'}));
+  if(r.matched) return showConfirmed();
+  tpay.disabled = false; tpay.textContent = 'Try again';
+  tErr.textContent = r.error || r.reason || 'Could not confirm.';
+}
+// Where to go after paying: the merchant's own page (e.g. back into the ChargeOS app).
+function returnLink(){
+  const u = order0 && order0.return_url;
+  if(!u) return '';
+  try { const x = new URL(String(u).replace('{order_id}', encodeURIComponent(id))); return x.protocol === 'https:' || x.protocol === 'http:' ? x.href : ''; } catch { return ''; }
+}
+let leaving = false;
 function showConfirmed(){
   clearInterval(timerInt);
+  const back = returnLink(), name = esc((order0 && order0.merchant_name) || 'the app');
   box.innerHTML=`<div class="ok-check">✅</div>
-    <h2 style="text-align:center;margin-top:8px">Order<br><span class="mute">confirmed</span></h2>
-    <p class="muted" style="text-align:center;margin-top:12px">Payment received — thank you! Your order is placed.</p>`;
+    <h2 style="text-align:center;margin-top:8px">Payment<br><span class="mute">confirmed</span></h2>
+    <p class="muted" style="text-align:center;margin-top:12px">Payment received — thank you!${back ? ' Taking you back to '+name+'…' : ' Your order is placed.'}</p>
+    ${back ? `<a class="btn" href="${esc(back)}" style="margin-top:14px">Back to ${name}</a>` : ''}`;
+  if(back && !leaving){ leaving = true; setTimeout(()=>{ location.href = back; }, 1800); }
 }
 function showVerifying(){
   clearInterval(timerInt);

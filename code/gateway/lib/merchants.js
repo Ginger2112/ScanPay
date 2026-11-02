@@ -19,7 +19,7 @@ function defaultMerchant() {
   return {
     id: DEFAULT_ID, name: config.merchant.name, vpa: config.merchant.vpa,
     webhook_url: config.webhook.url, webhook_secret: config.webhook.secret,
-    partner: null, external_ref: null, active: 1, created_at: 0,
+    partner: null, external_ref: null, active: 1, created_at: 0, test_mode: 0,
   };
 }
 
@@ -73,7 +73,7 @@ function cleanUrl(u) {
  * Partner callers pass partner + external_ref; calling again with the same pair
  * returns the existing merchant (no new key unless rotate is set).
  */
-export function createMerchant({ name, vpa, webhook_url = '', partner = null, external_ref = null, rotate = false }) {
+export function createMerchant({ name, vpa, webhook_url = '', partner = null, external_ref = null, rotate = false, test_mode = false }) {
   name = String(name || '').trim().slice(0, 80);
   vpa = String(vpa || '').trim();
   if (!name) throw new Error('business name required');
@@ -97,9 +97,9 @@ export function createMerchant({ name, vpa, webhook_url = '', partner = null, ex
   const id = 'mer_' + randomBytes(6).toString('hex');
   const key = 'sk_live_' + rand(24);
   const secret = 'whsec_' + rand(24);
-  db.prepare(`INSERT INTO merchants (id, name, vpa, api_key_hash, api_key_hint, webhook_url, webhook_secret, partner, external_ref, created_at)
-              VALUES (?,?,?,?,?,?,?,?,?,?)`)
-    .run(id, name, vpa, hash(key), key.slice(-4), hook, secret, partner, external_ref ? String(external_ref) : null, now());
+  db.prepare(`INSERT INTO merchants (id, name, vpa, api_key_hash, api_key_hint, webhook_url, webhook_secret, partner, external_ref, created_at, test_mode)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(id, name, vpa, hash(key), key.slice(-4), hook, secret, partner, external_ref ? String(external_ref) : null, now(), test_mode ? 1 : 0);
   return { merchant: publicView(getMerchant(id)), created: true, api_key: key, webhook_secret: secret };
 }
 
@@ -240,7 +240,7 @@ export function listInvites() {
 export function publicView(m) {
   if (!m) return null;
   return { id: m.id, name: m.name, vpa: m.vpa, webhook_url: m.webhook_url, partner: m.partner, external_ref: m.external_ref,
-    api_key_hint: m.api_key_hint || null, active: !!m.active, created_at: m.created_at };
+    api_key_hint: m.api_key_hint || null, active: !!m.active, created_at: m.created_at, test_mode: !!m.test_mode };
 }
 
 export function listMerchants() {

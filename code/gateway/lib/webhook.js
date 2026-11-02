@@ -47,6 +47,7 @@ export async function sendWebhook(event, order, extra = {}) {
     utr: order.utr || null,
     status: order.status,
     ref: order.ref || null,
+    test_mode: !!m.test_mode,
     ...extra,
     at: Date.now(),
   });

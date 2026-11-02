@@ -114,3 +114,8 @@ db.exec(`CREATE INDEX IF NOT EXISTS orders_merchant ON orders (merchant_id, stat
 for (const col of ['sms_ok INTEGER', 'push_ok INTEGER']) {
   try { db.exec(`ALTER TABLE observers ADD COLUMN ${col};`); } catch { /* exists */ }
 }
+// Test-mode merchant (e.g. ChargeOS before launch): fake UPI ID, payments are made with a test button,
+// everything else (matching, webhook, sweep) runs exactly like a real payment. No real money can move.
+try { db.exec('ALTER TABLE merchants ADD COLUMN test_mode INTEGER NOT NULL DEFAULT 0;'); } catch { /* exists */ }
+// return_url: where the checkout sends the buyer after paying (set by the merchant's own API call).
+try { db.exec('ALTER TABLE orders ADD COLUMN return_url TEXT;'); } catch { /* exists */ }

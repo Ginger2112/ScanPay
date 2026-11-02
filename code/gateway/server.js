@@ -60,6 +60,7 @@ function paymentView(req, order) {
     id: order.id, status: order.status, amount: order.amount, pay_amount: pay, currency: order.currency,
     vpa: order.vpa || m.vpa, payee_name: m.name, ref: order.ref, ref_name: order.ref_name, utr: order.utr || null,
     expires_at: order.expires_at, paid_at: order.paid_at, confirmed_at: order.confirmed_at,
+    test_mode: !!m.test_mode, return_url: order.return_url || null,
     upi_url: upiString({ amount: pay, note: order.ref_name || order.id, vpa: order.vpa || m.vpa, name: m.name }),
     checkout_url: `${baseUrl(req)}/checkout?id=${order.id}`,
   };
@@ -150,6 +151,23 @@ async function ingestCredit({ amount, utr, payer, source, raw, merchant_id = M.D
   return { matched: false, reason: r.reason };
 }
 
+// Test-mode merchants only: pay an order with a made-up bank credit. It goes through the same
+// matching + confirm + signed webhook as a real SMS, so the merchant's side is tested for real.
+async function testPay(order) {
+  const m = M.getMerchant(order.merchant_id);
+  if (!m || !m.test_mode) return { status: 403, body: { error: 'test payments only work for a test-mode merchant' } };
+  if (['paid', 'confirmed'].includes(order.status)) return { status: 200, body: { matched: true, order_id: order.id, already: true } };
+  if (!['awaiting_payment', 'expired', 'utr_submitted'].includes(order.status)) return { status: 409, body: { error: `payment is ${order.status}` } };
+  const utr = 'TEST' + String(Date.now()).slice(-8);
+  const r = await ingestCredit({ amount: order.pay_amount ?? order.amount, utr, source: 'test-mode', raw: 'TEST MODE: no real money', merchant_id: m.id });
+  return { status: r.matched ? 200 : 409, body: r };
+}
+// The merchant's own https page, to send the buyer back to after paying.
+function cleanReturnUrl(u) {
+  if (!u) return null;
+  try { const x = new URL(String(u)); return x.protocol === 'https:' || (config.demoMode && x.protocol === 'http:') ? x.toString().slice(0, 500) : null; } catch { return null; }
+}
+
 // ===== Merchant API v1 =====
 // Auth:  merchant calls  -> "Authorization: Bearer sk_live_…" (the merchant's own key)
 //        partner calls   -> "x-partner-key: …" (a platform onboarding its users, e.g. Tably)
@@ -234,7 +252,7 @@ async function v1(req, res, url, seg) {
     if (amount > 100000) return json(res, 400, { error: 'amount above ₹1,00,000 needs a different payment method' });
     const o = createOrder({ amount, items: Array.isArray(b.items) ? b.items.slice(0, 100) : [], customer: b.customer || {},
       ref: b.ref ? String(b.ref).slice(0, 120) : null, ref_name: b.ref_name ? String(b.ref_name).slice(0, 60) : null, merchant_id: m.id,
-      amount_locked: !!b.amount_locked });
+      amount_locked: !!b.amount_locked, return_url: cleanReturnUrl(b.return_url) });
     const started = startPayment(o.id, { ttlSec: b.ttl_sec });
     return json(res, 201, paymentView(req, started.order));
   }
@@ -247,6 +265,11 @@ async function v1(req, res, url, seg) {
     if (!o || o.merchant_id !== m.id) return json(res, 404, { error: 'no such payment' });
     // GET /api/v1/payments/:id
     if (seg.length === 4 && method === 'GET') return json(res, 200, paymentView(req, o));
+    // POST /api/v1/payments/:id/test-pay -> test-mode merchant only: pay it with a fake credit
+    if (seg[4] === 'test-pay' && method === 'POST') {
+      const r = await testPay(o);
+      return json(res, r.status, r.status === 200 ? paymentView(req, getOrder(o.id)) : r.body);
+    }
     // POST /api/v1/payments/:id/cancel -> e.g. the bill was paid in cash instead
     if (seg[4] === 'cancel' && method === 'POST') {
       if (['paid', 'confirmed'].includes(o.status)) return json(res, 409, { error: `payment is already ${o.status}` });
@@ -419,8 +442,17 @@ const server = http.createServer(async (req, res) => {
         const order = getOrder(id);
         if (!order) return json(res, 404, { error: 'no such order' });
 
-        // GET /api/orders/:id
-        if (seg.length === 3 && req.method === 'GET') return json(res, 200, order);
+        // GET /api/orders/:id  (+ which business, and whether it's a test-mode merchant)
+        if (seg.length === 3 && req.method === 'GET') {
+          const om = M.getMerchant(order.merchant_id);
+          return json(res, 200, { ...order, merchant_name: om ? om.name : '', test_mode: !!(om && om.test_mode) });
+        }
+        // POST /api/orders/:id/test-pay -> the checkout's "Pay (test)" button; test-mode merchants only
+        if (seg[3] === 'test-pay' && req.method === 'POST') {
+          if (limited(req, res, 'test-pay')) return;
+          const r = await testPay(order);
+          return json(res, r.status, r.body);
+        }
 
         // POST /api/orders/:id/customer {name,phone,email,consent} -> save + send OTP
         if (seg[3] === 'customer' && req.method === 'POST') {
