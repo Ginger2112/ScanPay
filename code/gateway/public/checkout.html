@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Scantopay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="spark" viewBox="0 0 100 100"><g fill="currentColor">
+    <rect x="45" y="4" width="10" height="92" rx="1.5"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(45 50 50)"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(90 50 50)"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(135 50 50)"/></g></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M7 17 L17 7 M9 7 H17 V15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<div class="frame">
+  <header class="top">
+    <div class="lockup"><svg class="spark"><use href="#spark"/></svg>
+      <div class="wm">Scantopay<small>Secure UPI Checkout</small></div></div>
+    <nav class="nav"><a href="/store">Store</a><a href="/admin">Merchant</a></nav>
+  </header>
+  <div class="wrap">
+    <div class="card center" id="box"><p class="muted">Loading order…</p></div>
+  </div>
+</div>
+<script>
+const qs = new URLSearchParams(location.search);
+const id = qs.get('id') || qs.get('order'); // older API links used ?order=
+const box = document.getElementById('box');
+let timerInt;
+// Order items / ids come from a public API, so they're escaped before going into HTML.
+const esc = (s)=>String(s??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const badge = (s)=>`<span class="badge b-${esc(s)}">${esc(String(s).replace('_',' '))}</span>`;
+
+async function init(){
+  const order = await (await fetch('/api/orders/'+id)).json();
+  if(order.error){ box.innerHTML = '<p>Order not found.</p>'; return; }
+  // Details already given (verified, or past the QR stage) -> don't ask again on reload.
+  if((order.customer && order.customer.verified) || order.status !== 'created') return showPayment();
+  showDetails(order);
+}
+
+// Step 1 — collect verified first-party customer details (owned by the merchant).
+function showDetails(order){
+  box.innerHTML = `
+    <div class="eyebrow" style="justify-content:center"><svg class="spark"><use href="#spark"/></svg>Your details</div>
+    <div class="amount" style="font-size:30px">₹${Number(order.amount).toFixed(2)}</div>
+    <p class="muted" style="text-align:center;margin:2px 0 16px">Enter your details to continue to payment.</p>
+    <input class="field" id="c_name" placeholder="Full name" style="margin-bottom:10px">
+    <input class="field" id="c_phone" placeholder="Phone number" style="margin-bottom:10px">
+    <input class="field" id="c_email" placeholder="Email (optional)" style="margin-bottom:12px">
+    <label class="muted" style="display:flex;gap:9px;align-items:flex-start;margin-bottom:14px;text-transform:none;letter-spacing:0">
+      <input type="checkbox" id="c_consent" checked style="margin-top:3px">
+      <span>Send me order updates & offers on WhatsApp.</span></label>
+    <button onclick="submitDetails()">Continue</button>
+    <p class="muted" id="dErr" style="text-align:center;margin-top:10px"></p>`;
+}
+async function submitDetails(){
+  const body={ name:c_name.value.trim(), phone:c_phone.value.trim(), email:c_email.value.trim(), consent:c_consent.checked };
+  if(!body.name||!body.phone){ dErr.textContent='Name and phone are required.'; return; }
+  const r=await (await fetch('/api/orders/'+id+'/customer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})).json();
+  if(r.error){ dErr.textContent=r.error; return; }
+  if(r.skip_otp) return showPayment(); // live mode without WhatsApp OTP: straight to payment
+  showOtp(r.otp_demo);
+}
+// Step 2 — OTP verification (demo shows the code; real build sends WhatsApp/SMS).
+function showOtp(demoCode){
+  box.innerHTML = `
+    <div class="eyebrow" style="justify-content:center"><svg class="spark"><use href="#spark"/></svg>Verify</div>
+    <h2 style="text-align:center">Enter<br><span class="mute">the</span> OTP</h2>
+    <p class="muted" style="text-align:center;margin:10px 0">${demoCode?`Demo OTP: <b style="color:var(--signal)">${esc(demoCode)}</b>`:'Sent to your phone.'}</p>
+    <input class="field" id="otp" placeholder="6-digit code" style="text-align:center;letter-spacing:.3em;margin-bottom:12px">
+    <button onclick="verify()">Verify & pay</button>
+    <p class="muted" id="oErr" style="text-align:center;margin-top:10px"></p>`;
+}
+async function verify(){
+  const r=await (await fetch('/api/orders/'+id+'/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:otp.value.trim()})})).json();
+  if(!r.ok){ oErr.textContent = r.reason==='bad_code'?'Wrong code, try again.':'Could not verify.'; return; }
+  showPayment();
+}
+
+// Step 3 — payment (QR + timer + live status).
+async function showPayment(){
+  const start = await (await fetch('/api/orders/'+id+'/start',{method:'POST'})).json();
+  if(start.queued){
+    box.innerHTML = `<div class="eyebrow"><svg class="spark"><use href="#spark"/></svg>Please wait</div>
+      <h2>You're in<br><span class="mute">the</span> queue</h2>
+      <p class="muted" style="margin-top:12px">Another buyer is paying right now. This continues automatically.</p>`;
+    setTimeout(init, 3000); return;
+  }
+  const o = start.order;
+  if(['paid','confirmed'].includes(o.status)) return showConfirmed();
+  if(o.status==='utr_submitted') { showVerifying(); listen(); return; }
+  const pay = Number(o.pay_amount ?? o.amount);
+  const { data, svg } = await (await fetch('/api/orders/'+id+'/qr')).json();
+  box.innerHTML = `
+    <div class="eyebrow" style="justify-content:center"><svg class="spark"><use href="#spark"/></svg>Pay with UPI · ${badge(o.status)}</div>
+    <div class="pill" style="display:block;width:fit-content;margin:0 auto 8px">${esc(o.items.map(i=>i&&i.name).join(', '))}</div>
+    <div class="amount">₹${pay.toFixed(2)}</div>
+    <p class="muted" style="text-align:center;margin:2px 0 0">Scan the QR — the exact amount fills in automatically.</p>
+    <div class="qr">${svg}</div>
+    <a class="btn" href="${esc(data)}">Open in UPI app <svg width="14" height="14"><use href="#arrow"/></svg></a>
+    <p class="timer" id="timer" style="margin-top:16px"></p>
+    <p class="muted" style="text-align:center;margin-top:4px">Anyone can scan & pay — this page confirms by itself.</p>
+    <details style="border-top:1px solid var(--line);margin-top:18px;padding-top:14px">
+      <summary class="muted" style="cursor:pointer;text-align:center">Paid but this page didn’t update?</summary>
+      <p class="muted" style="text-align:center;margin:10px 0 8px">Enter the <b>UPI transaction ID / UTR</b> from the payment app:</p>
+      <input class="field" id="utr" placeholder="12-digit UPI ref" inputmode="numeric" style="text-align:center;letter-spacing:.1em;margin-bottom:10px">
+      <button onclick="sendUtr()">Confirm my payment</button>
+      <p class="muted" id="uErr" style="text-align:center;margin-top:8px"></p>
+    </details>
+    <p class="muted" style="text-align:center;margin-top:10px;font-size:11px">Order <code>${esc(o.id)}</code></p>`;
+  countdown(o.expires_at); listen();
+}
+function showConfirmed(){
+  clearInterval(timerInt);
+  box.innerHTML=`<div class="ok-check">✅</div>
+    <h2 style="text-align:center;margin-top:8px">Order<br><span class="mute">confirmed</span></h2>
+    <p class="muted" style="text-align:center;margin-top:12px">Payment received — thank you! Your order is placed.</p>`;
+}
+function showVerifying(){
+  clearInterval(timerInt);
+  box.innerHTML=`<div class="ok-check">⏳</div>
+    <h2 style="text-align:center;margin-top:8px">Verifying<br><span class="mute">with bank</span></h2>
+    <p class="muted" style="text-align:center;margin-top:12px">Got your UTR. We’re matching it with the bank — this page confirms automatically, usually within a minute.</p>`;
+}
+async function sendUtr(){
+  const v=document.getElementById('utr').value.trim();
+  if(!v){ uErr.textContent='Enter the UTR from your UPI app.'; return; }
+  const r=await (await fetch('/api/orders/'+id+'/utr',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({utr:v})})).json();
+  if(!r.ok){ uErr.textContent = r.reason==='duplicate_utr'?'That UTR was already used.':r.reason==='bad_utr'?'That doesn’t look like a valid UTR.':'Could not submit.'; return; }
+  if(r.confirmed) return showConfirmed();
+  showVerifying();
+}
+function countdown(expires){
+  clearInterval(timerInt);
+  const el=()=>document.getElementById('timer');
+  timerInt=setInterval(()=>{
+    const left=Math.max(0,Math.floor((expires-Date.now())/1000));
+    const m=String(Math.floor(left/60)).padStart(2,'0'),s=String(left%60).padStart(2,'0');
+    if(el()) el().textContent = left>0 ? `Pay within ${m}:${s}` : 'Payment window expired';
+    if(left<=0) clearInterval(timerInt);
+  },500);
+}
+function listen(){
+  const es=new EventSource('/api/orders/'+id+'/events');
+  es.onmessage=(ev)=>{
+    const d=JSON.parse(ev.data);
+    if(d.type==='paid'||d.type==='payment_detected'||d.type==='confirmed'){ showConfirmed(); }
+    if(d.type==='expired'){ clearInterval(timerInt);
+      // Keep listening: a payment made just after the timer still confirms here.
+      box.innerHTML=`<div class="ok-check">⏱️</div><h2 style="text-align:center;margin-top:8px">QR<br><span class="mute">expired</span></h2>
+        <p class="muted" style="text-align:center;margin-top:12px">Already paid? Keep this page open — it will still confirm. Otherwise <a href="/store">start again</a>.</p>`; }
+    if(d.type==='awaiting_payment'){ // merchant rejected the UTR — let them retry
+      es.close(); showPayment(); }
+    if(d.type==='confirmed') es.close();
+  };
+}
+init();
+</script>
+</body></html>

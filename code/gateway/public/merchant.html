@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Merchant · Scan Oye</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#050506">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scan Oye">
+<link rel="stylesheet" href="/scanoye.css">
+</head><body>
+<div class="top"><span class="wm"><i>✓</i>scan<b>oye</b>.</span><a href="#" id="out" class="muted" style="color:var(--mist)" hidden>Sign out</a></div>
+<main class="wide">
+  <div class="warn" id="offline" hidden>Can't reach Scan Oye. Retrying…</div>
+  <section id="login" hidden>
+    <h1>Your payments</h1>
+    <p class="lead">Sign in with the API key you saved when you connected.</p>
+    <form class="card" id="lf">
+      <label for="k">API key</label>
+      <input id="k" required placeholder="sk_live_…" autocapitalize="off" spellcheck="false">
+      <button class="full">Sign in</button>
+      <div class="err" id="lerr"></div>
+    </form>
+  </section>
+
+  <section id="app" hidden>
+    <div id="hint0"></div>
+    <h1 id="mname"></h1>
+    <p class="lead">Money goes straight to <b class="mono" id="mvpa"></b>. Scan Oye only reads the bank SMS to confirm it.</p>
+
+    <div class="card">
+      <h2>Phone</h2>
+      <p id="phone"></p>
+      <div class="row"><button class="ghost" id="pairBtn" type="button">Connect a phone</button>
+        <button class="ghost" id="unlinkBtn" type="button" hidden>Unlink all phones</button></div>
+      <div id="pairBox" hidden>
+        <div class="qr" id="qr"></div>
+        <p class="muted" style="text-align:center">Scan with the Android phone's camera. Works once, for 10 minutes.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Payments</h2>
+      <div class="scroll"><table><thead><tr><th>When</th><th>Ref</th><th>Amount</th><th>Paid</th><th>UTR</th><th>Status</th><th></th></tr></thead><tbody id="pays"></tbody></table></div>
+      <p class="muted" id="noPays" hidden>No payments yet.</p>
+      <p class="muted">No Android phone (iPhone only)? Check your bank app, then tap <b>Mark paid</b> on that payment.</p>
+    </div>
+
+    <div class="card">
+      <h2>Bank credits seen by your phone</h2>
+      <p class="muted">Every UPI credit the phone reported. "Unmatched" means no open payment had that amount: check it in your bank app.</p>
+      <div class="scroll"><table><thead><tr><th>When</th><th>Amount</th><th>From</th><th>UTR</th><th>Source</th><th>Matched</th></tr></thead><tbody id="credits"></tbody></table></div>
+    </div>
+
+    <div class="card" id="testCard">
+      <h2>Try it</h2>
+      <p class="muted">Creates a ₹2 payment to your UPI ID (a few paise less if another test is still open). Pay the exact amount shown from any UPI app and watch it turn Paid here by itself. You can run it as often as you like.</p>
+      <div class="row"><button type="button" id="test">Create a ₹2 test payment</button></div>
+      <div id="testOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>Settings</h2>
+      <form id="sf">
+        <label for="sname">Business name</label><input id="sname" maxlength="80">
+        <label for="svpa">UPI ID</label><input id="svpa" autocapitalize="off" spellcheck="false">
+        <label for="shook">Webhook link</label><input id="shook" placeholder="https://…" autocapitalize="off" spellcheck="false">
+        <button class="full">Save</button>
+        <div class="err" id="serr"></div>
+      </form>
+      <p class="muted" style="margin-top:14px">API key ends in <span class="mono" id="hint"></span>. Webhook secret: <button class="ghost" type="button" id="showSecret" style="padding:4px 10px;font-size:12px">Show</button> <span class="mono" id="secret"></span></p>
+    </div>
+  </section>
+</main>
+<script src="/scanoye.js"></script>
+<script>
+let KEY = null, ME = null;
+const OPEN = ['awaiting_payment', 'utr_submitted', 'expired'];
+$('#hint0').innerHTML = installHint();
+try { KEY = localStorage.getItem('scanoye_key'); } catch {}
+
+let retry = null;
+async function load() {
+  try { ME = await api('/api/v1/me', { key: KEY }); }
+  catch (x) {
+    // Only a real "wrong key" (401) signs out. No network / server down: keep the key and retry.
+    if (x.status === 401) {
+      KEY = null; try { localStorage.removeItem('scanoye_key'); } catch {}
+      $('#offline').hidden = true; $('#login').hidden = false; $('#app').hidden = true; $('#out').hidden = true; return;
+    }
+    $('#offline').hidden = false; clearTimeout(retry); retry = setTimeout(load, 5000); return;
+  }
+  $('#offline').hidden = true;
+  $('#login').hidden = true; $('#app').hidden = false; $('#out').hidden = false;
+  const m = ME.merchant;
+  $('#mname').textContent = m.name; $('#mvpa').textContent = m.vpa; $('#hint').textContent = '…' + (m.api_key_hint || '');
+  $('#sname').value = m.name; $('#svpa').value = m.vpa; $('#shook').value = m.webhook_url || '';
+  showPhone(ME.phone);
+  await lists();
+}
+function showPhone(p) {
+  $('#phone').innerHTML = phoneLine(p);
+  $('#pairBtn').textContent = p.paired ? 'Connect another phone' : 'Connect a phone';
+  $('#unlinkBtn').hidden = !p.paired;
+}
+async function lists() {
+  const [pays, credits] = await Promise.all([api('/api/v1/payments', { key: KEY }), api('/api/v1/credits', { key: KEY })]);
+  $('#noPays').hidden = pays.length > 0;
+  $('#pays').innerHTML = pays.map((p) => `<tr><td>${when(p.paid_at || p.expires_at)}</td><td>${esc(p.ref_name || p.ref || p.id)}</td>
+    <td class="amt">${rs(p.amount)}</td><td class="amt">${rs(p.pay_amount)}</td><td class="mono">${esc(p.utr || '—')}</td><td>${statusPill(p.status)}</td>
+    <td>${OPEN.includes(p.status) ? `<button class="ghost sm" data-paid="${esc(p.id)}" data-amt="${p.pay_amount}">Mark paid</button>` : ''}</td></tr>`).join('');
+  const open = pays.filter((p) => OPEN.includes(p.status));
+  $('#credits').innerHTML = credits.map((c) => `<tr><td>${when(c.at)}</td><td class="amt">${rs(c.amount)}</td><td>${esc(c.payer || '—')}</td>
+    <td class="mono">${esc(c.utr || '—')}</td><td>${esc(c.source || '')}</td><td>${c.status === 'matched' ? '<span class="pill paid">Matched</span>' : (open.length
+      ? `<select data-credit="${c.id}" data-amt="${c.amount}" aria-label="Attach this credit to a payment"><option value="">Unmatched · attach to…</option>${open.map((p) => `<option value="${esc(p.id)}" data-amt="${p.pay_amount}">${esc(p.ref_name || p.id)} · ${rs(p.pay_amount)}</option>`).join('')}</select>`
+      : '<span class="pill">Unmatched</span>')}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="muted">Nothing yet.</td></tr>';
+}
+
+$('#lf').addEventListener('submit', async (e) => {
+  e.preventDefault(); KEY = $('#k').value.trim();
+  try { await api('/api/v1/me', { key: KEY }); try { localStorage.setItem('scanoye_key', KEY); } catch {} load(); }
+  catch (x) { $('#lerr').textContent = 'That key didn\'t work. Check you copied all of it.'; }
+});
+$('#out').addEventListener('click', (e) => { e.preventDefault(); try { localStorage.removeItem('scanoye_key'); } catch {} location.reload(); });
+$('#pairBtn').addEventListener('click', async () => {
+  try { const p = await api('/api/v1/me/pairing', { method: 'POST', key: KEY }); $('#qr').innerHTML = p.qr_svg; $('#pairBox').hidden = false; } catch (x) { alert(x.message); }
+});
+$('#unlinkBtn').addEventListener('click', async () => {
+  if (!confirm('Unlink every phone from ' + ME.merchant.name + '? They stop confirming payments at once. Do this if a phone is lost, sold or changed. You can connect a phone again with a fresh QR.')) return;
+  try { const r = await api('/api/v1/me/phones/revoke', { method: 'POST', key: KEY }); alert(r.revoked + ' phone(s) unlinked.'); $('#pairBox').hidden = true; load(); }
+  catch (x) { alert(x.message); }
+});
+$('#sf').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('#serr').textContent = '';
+  const newVpa = $('#svpa').value.trim();
+  if (newVpa && newVpa.toLowerCase() !== String(ME.merchant.vpa).toLowerCase()
+    && !confirm('Change your UPI ID to ' + newVpa + '?\n\nOpen payments keep the old UPI ID until they expire; new payments use the new one. Connect a phone that gets the new account\'s bank SMS.')) return;
+  try { await api('/api/v1/me', { method: 'POST', key: KEY, body: { name: $('#sname').value, vpa: $('#svpa').value, webhook_url: $('#shook').value } }); load(); }
+  catch (x) { $('#serr').textContent = x.message; }
+});
+// A bank credit smaller than the payment is refused once; the merchant can still attach it on purpose.
+async function sendWithForce(path, body) {
+  try { return await api(path, { method: 'POST', key: KEY, body }); }
+  catch (x) {
+    const d = x.data || {};
+    if (d.code !== 'credit_too_small') throw x;
+    if (!confirm(`This credit (${rs(d.credit_amount)}) is less than the payment (${rs(d.pay_amount)}). Attach anyway?`)) return null;
+    return api(path, { method: 'POST', key: KEY, body: { ...body, force: true } });
+  }
+}
+// Manual confirm (iPhone-only merchants) and attaching a stray bank credit.
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-paid]');
+  if (!b) return;
+  if (!confirm('Mark ' + rs(b.dataset.amt) + ' as paid? Only do this after you see the money in your bank app.')) return;
+  const typed = prompt('UPI reference (UTR) from your bank app, if you have it. You can leave it empty.');
+  if (typed === null) return; // Cancel = don't mark it paid; empty = no UTR
+  const utr = typed.trim();
+  try { await sendWithForce('/api/v1/payments/' + encodeURIComponent(b.dataset.paid) + '/mark-paid', { utr }); lists(); }
+  catch (x) { alert(x.message); }
+});
+document.addEventListener('change', async (e) => {
+  const sel = e.target.closest('[data-credit]');
+  if (!sel || !sel.value) return;
+  const opt = sel.selectedOptions[0];
+  const credit = Number(sel.dataset.amt), bill = Number(opt.dataset.amt);
+  const diff = Math.abs(credit - bill) > 0.001 ? `\n\nThe amounts don't match (${rs(credit)} received, ${rs(bill)} asked).` : '';
+  if (!confirm(`Attach the ${rs(credit)} bank credit to "${opt.textContent}"? That payment becomes Paid.${diff}`)) { sel.value = ''; sel.blur(); return; }
+  try { const r = await sendWithForce('/api/v1/credits/' + encodeURIComponent(sel.dataset.credit) + '/assign', { payment_id: sel.value }); if (!r) sel.value = ''; lists(); }
+  catch (x) { alert(x.message); sel.value = ''; }
+});
+$('#showSecret').addEventListener('click', () => { $('#secret').textContent = ME.webhook_secret; });
+$('#test').addEventListener('click', async () => {
+  try {
+    // ₹2, not ₹1: UPI can't go below ₹1, so ₹1 leaves no room for a unique amount and a second test
+    // would be refused while the first one's amount is still held. ₹2 can step down to ₹1.01 … ₹1.99.
+    const p = await api('/api/v1/payments', { method: 'POST', key: KEY, body: { amount: 2, ref_name: 'Test ₹2' } });
+    $('#testOut').innerHTML = `<p>Pay <b class="amt">${rs(p.pay_amount)}</b> to <span class="mono">${esc(p.vpa)}</span>. <a href="${esc(p.upi_url)}">Open UPI app</a></p>`;
+    lists();
+  } catch (x) { $('#testOut').innerHTML = `<div class="err">${esc(x.message)}</div>`; }
+});
+// Live refresh: phone + lists only, so the settings form isn't overwritten while typing.
+setInterval(async () => {
+  if (!KEY || $('#app').hidden) return;
+  try {
+    const me = await api('/api/v1/me', { key: KEY }); ME = { ...ME, ...me, merchant: { ...ME.merchant, ...me.merchant } }; showPhone(me.phone);
+    // Don't rebuild the tables while the merchant has an "attach to…" list open.
+    if (document.activeElement && document.activeElement.matches('select[data-credit]')) return;
+    await lists();
+  } catch (x) { if (x.status === 401) load(); }
+}, 8000);
+if (KEY) load(); else $('#login').hidden = false;
+</script>
+</body></html>

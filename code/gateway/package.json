@@ -1,0 +1,24 @@
+{
+  "name": "scantopay",
+  "version": "0.1.0-demo",
+  "private": true,
+  "description": "Scantopay — self-hosted UPI + COD payment gateway with a payments CRM. Demo build.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "demo": "node server.js",
+    "observer": "node observer/gmail-observer.js",
+    "test": "node test/parse-axis.test.mjs && node test/parse-bank.test.mjs && node test/auto-confirm.test.mjs && node test/multi-merchant.test.mjs && node test/security.test.mjs"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "imapflow": "^2.9.0",
+    "mailparser": "^3.12.2",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

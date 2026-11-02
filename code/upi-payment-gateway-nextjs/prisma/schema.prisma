@@ -1,0 +1,239 @@
+// UPI Payment Gateway — data model
+//
+// Design rules that the rest of the codebase depends on:
+//
+//  1. All money is stored as INTEGER PAISE. Never floats, never Decimal.
+//     ₹499.37 is 49937. Formatting to rupees happens only at the display edge.
+//
+//  2. We never take custody of funds, so there is no balance, wallet, ledger,
+//     or payout model here — and there must never be one. See MEMORY.md.
+//
+//  3. Enums are modelled as String because SQLite (local dev) has no enum
+//     support. The allowed values live in src/lib/types.ts as TS unions and are
+//     validated at the API boundary with zod.
+//
+// Local dev runs on SQLite so the project boots with no database server.
+// For production, change provider to "postgresql" and point DATABASE_URL at
+// Neon/Supabase. No model changes are required.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id    String @id @default(cuid())
+  name  String
+  email String @unique
+
+  // API credentials. Only the hash is stored; the plaintext key is shown once
+  // at creation. Prefix is kept so merchants can identify a key in the UI.
+  apiKeyHash   String @unique
+  apiKeyPrefix String
+
+  // Where we POST payment.paid events, and the secret used to sign them.
+  webhookUrl    String?
+  webhookSecret String
+
+  // Origins allowed to frame the hosted checkout (Shopify storefront, etc).
+  // Comma-separated. Empty means framing is denied.
+  allowedFrameOrigins String @default("")
+
+  upiAccounts    UpiAccount[]
+  paymentIntents PaymentIntent[]
+  shopifyStores  ShopifyStore[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A UPI account the merchant already owns and receives money into.
+//
+// Deliberately NOT "an integration". No UPI provider (PhonePe Business, Paytm
+// Business, BharatPe, …) exposes a public API to link an account, so this is
+// the merchant telling us which VPA to address and which app the confirmation
+// will show up in. Knowing the provider is what lets verification parse the
+// right notification or credit-alert format later.
+//
+// Multiple accounts per merchant serve two purposes:
+//   1. Each account is an independent pool of charge amounts, so N accounts
+//      multiply how many concurrent orders can share one price point.
+//   2. Each account has its own daily receiving limit, so routing across them
+//      raises total throughput.
+model UpiAccount {
+  id         String   @id @default(cuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  // Key into UPI_PROVIDERS in src/lib/providers.ts.
+  provider String
+
+  vpa       String
+  payeeName String // Shown in the customer's UPI app
+
+  // Merchant's own label, e.g. "PhonePe – main store".
+  label String?
+
+  // "merchant" for a business/P2M account, "personal" for an individual VPA.
+  // Personal accounts carry a much lower ceiling and a real risk of the bank
+  // freezing a savings account used for business inflow, so the UI warns.
+  accountType String @default("merchant")
+
+  // What this account can receive in 24h, in paise. Must be set to what the
+  // merchant's own bank/PSP actually permits — limits vary by provider and
+  // merchant category and change over time, so this is configurable, never
+  // inferred.
+  dailyLimitPaise Int
+
+  active Boolean @default(true)
+
+  // Lower sorts first when choosing among accounts with headroom.
+  priority Int @default(0)
+
+  paymentIntents PaymentIntent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One VPA cannot be registered twice for the same merchant.
+  @@unique([merchantId, vpa])
+  @@index([merchantId, active])
+}
+
+model PaymentIntent {
+  id         String   @id @default(cuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  // Which of the merchant's UPI accounts this payment is addressed to. Set at
+  // creation and never changed — the charge amount is reserved against this
+  // account specifically.
+  upiAccountId String
+  upiAccount   UpiAccount @relation(fields: [upiAccountId], references: [id], onDelete: Restrict)
+
+  // The merchant's own order identifier (Shopify order id, WooCommerce order
+  // number). Unique per merchant so a retried create cannot double-book.
+  reference String
+
+  // What the merchant asked us to collect.
+  baseAmountPaise Int
+
+  // What the customer is actually asked to pay: baseAmountPaise with a unique
+  // paise suffix so an incoming bank credit maps to exactly one live intent.
+  // This is what makes auto-reconciliation deterministic instead of a guess.
+  chargeAmountPaise Int
+
+  // Mirrors chargeAmountPaise while the intent is live, then set to NULL on any
+  // terminal status. Combined with the unique index below this guarantees no
+  // two live intents on the SAME UPI ACCOUNT ever share an amount, and releases
+  // the amount back to that account's pool the moment the intent settles.
+  //
+  // Scoped per account, not per merchant: a credit alert only ever has to be
+  // matched within the account it landed in, so two different accounts may
+  // legitimately both have ₹499.00 outstanding. This is also why adding an
+  // account multiplies capacity at a given price point.
+  //
+  // NULLs are treated as distinct by both SQLite and Postgres, which is exactly
+  // the behaviour we want here.
+  activeAmountKey Int?
+
+  // pending | awaiting_confirmation | paid | expired | cancelled
+  status String @default("pending")
+
+  description   String?
+  customerEmail String?
+  customerPhone String?
+
+  // How the payment was confirmed: utr_claim | manual_approval | email_match
+  verifiedVia String?
+
+  // Live intents hold an amount slot, so they must expire or the pool leaks.
+  expiresAt DateTime
+  paidAt    DateTime?
+
+  // Supplied by the caller to make create idempotent across network retries.
+  idempotencyKey String? @unique
+
+  verificationEvents VerificationEvent[]
+  webhookDeliveries  WebhookDelivery[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([merchantId, reference])
+  @@unique([upiAccountId, activeAmountKey])
+  @@index([merchantId, status])
+  @@index([upiAccountId, status])
+  @@index([expiresAt])
+  // Daily-usage lookups when routing to an account with headroom.
+  @@index([upiAccountId, paidAt])
+}
+
+// Append-only audit trail of every claim and confirmation attempt. We keep
+// rejected claims too — a merchant disputing "the customer says they paid"
+// needs the full history, and repeated bad UTRs are a fraud signal.
+model VerificationEvent {
+  id              String        @id @default(cuid())
+  paymentIntentId String
+  paymentIntent   PaymentIntent @relation(fields: [paymentIntentId], references: [id], onDelete: Cascade)
+
+  // utr_claim | manual_approval | manual_rejection | email_match
+  kind String
+
+  // The 12-digit UPI reference the customer says they paid with.
+  utr String?
+
+  // Who triggered it: "customer", "merchant:<id>", "system".
+  actor String
+
+  accepted Boolean @default(false)
+  // Why a claim was rejected, for the merchant-facing audit view.
+  note String?
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentIntentId])
+  @@index([utr])
+}
+
+model WebhookDelivery {
+  id              String        @id @default(cuid())
+  paymentIntentId String
+  paymentIntent   PaymentIntent @relation(fields: [paymentIntentId], references: [id], onDelete: Cascade)
+
+  url     String
+  event   String // payment.paid | payment.expired
+  payload String // JSON, exactly as signed — never re-serialise before verifying
+
+  attempts      Int       @default(0)
+  lastStatus    Int?
+  lastError     String?
+  deliveredAt   DateTime?
+  nextAttemptAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([deliveredAt, nextAttemptAt])
+}
+
+// Phase 1: Shopify. Stored per shop domain because one merchant may run
+// several storefronts against the same VPA.
+model ShopifyStore {
+  id         String   @id @default(cuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  shopDomain  String @unique
+  accessToken String
+  scopes      String
+
+  uninstalledAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([merchantId])
+}

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <WebView
+        android:id="@+id/web"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- Onboarding / settings panel -->
+    <ScrollView
+        android:id="@+id/setup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#050506"
+        android:padding="28dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/app_name"
+                android:textColor="#FFFFFF"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:layout_marginTop="40dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Scan the pairing QR from your Scan Oye or Tably page with this phone's camera. That connects it in one tap. Advanced: type the server and token below."
+                android:textColor="#C9C8C4"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#E8A317"
+                android:textStyle="bold"
+                android:layout_marginBottom="20dp" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Server URL (e.g. http://192.168.1.5:6100)" android:textColor="#EEECEA" />
+            <EditText
+                android:id="@+id/baseUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="http://192.168.1.5:6100"
+                android:textColorHint="#6E6E73"
+                android:textColor="#FFFFFF"
+                android:inputType="textUri"
+                android:layout_marginBottom="16dp" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Observer token" android:textColor="#EEECEA" />
+            <EditText
+                android:id="@+id/token"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Observer token (advanced)"
+                android:textColorHint="#6E6E73"
+                android:textColor="#FFFFFF"
+                android:inputType="text"
+                android:layout_marginBottom="24dp" />
+
+            <Button
+                android:id="@+id/connect"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Connect"
+                android:backgroundTint="#E8A317"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/pushAccess"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Enable push-notification access (optional)"
+                android:backgroundTint="#2A2A2E"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="12dp" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

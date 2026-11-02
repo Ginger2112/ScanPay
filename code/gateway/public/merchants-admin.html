@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Merchants · Scan Oye admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#050506">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scan Oye">
+<link rel="stylesheet" href="/scanoye.css">
+</head><body>
+<div class="top"><span class="wm"><i>✓</i>scan<b>oye</b>. <small>admin</small></span><a href="/admin" style="color:var(--mist)">Your own dashboard</a></div>
+<main class="wide">
+  <h1>Merchants</h1>
+  <p class="lead">Every business collecting through Scan Oye. Each one's money goes to its own UPI ID.</p>
+  <div class="err" id="err"></div>
+  <div class="card">
+    <h2>Invite a new merchant</h2>
+    <div class="row"><input id="note" placeholder="Who is it for? (e.g. Sharma Clinic)"><button id="inv" style="flex:0 0 auto">Create invite link</button></div>
+    <div id="invOut"></div>
+  </div>
+  <div class="card scroll">
+    <table><thead><tr><th>Business</th><th>UPI ID</th><th>Via</th><th>Phone</th><th>Orders</th><th>Paid</th><th>Since</th><th>API key</th></tr></thead><tbody id="list"></tbody></table>
+    <div id="keyOut"></div>
+  </div>
+  <div class="card scroll">
+    <h2>Invite links</h2>
+    <table><thead><tr><th>For</th><th>Link</th><th>Used</th></tr></thead><tbody id="invites"></tbody></table>
+  </div>
+</main>
+<script src="/scanoye.js"></script>
+<script>
+async function load() {
+  try {
+    const [ms, inv] = await Promise.all([api('/api/merchants'), api('/api/invites')]);
+    $('#list').innerHTML = ms.map((m) => `<tr><td><b>${esc(m.name)}</b><div class="muted mono">${esc(m.id)}</div></td><td class="mono">${esc(m.vpa)}</td>
+      <td>${esc(m.partner || (m.id === 'default' ? 'you' : 'signup'))}</td>
+      <td>${m.phone.paired ? `<span class="pill ${m.phone.online ? 'paid' : ''}">${m.phone.online ? 'Online' : 'Seen ' + ago(m.phone.last_seen)}</span>` : (m.id === 'default' ? 'shared token' : '<span class="pill">Not paired</span>')}</td>
+      <td>${m.orders}</td><td class="amt">${rs(m.paid_total)}</td><td>${m.created_at ? when(m.created_at) : '—'}</td>
+      <td>${m.id === 'default' ? '—' : `<span class="muted mono">…${esc(m.api_key_hint || '')}</span> <button class="ghost sm" type="button" data-newkey="${esc(m.id)}" data-name="${esc(m.name)}">New key</button>`}</td></tr>`).join('');
+    $('#invites').innerHTML = inv.map((i) => `<tr><td>${esc(i.note || '—')}</td><td class="mono">${esc(i.url)}</td><td>${i.used_at ? when(i.used_at) : 'not yet'}</td></tr>`).join('')
+      || '<tr><td colspan="3" class="muted">No invites yet.</td></tr>';
+  } catch (x) {
+    $('#err').innerHTML = x.message === 'login required' ? 'Please <a href="/admin">sign in to admin</a> first.' : esc(x.message);
+  }
+}
+$('#inv').addEventListener('click', async () => {
+  try { const r = await api('/api/invites', { method: 'POST', body: { note: $('#note').value } });
+    $('#invOut').innerHTML = `<div class="key" style="margin-top:12px"><code>${esc(r.url)}</code><button type="button" id="cp">Copy</button></div>`; copyBtn($('#cp'), r.url); $('#note').value = ''; load(); }
+  catch (x) { $('#err').textContent = x.message; }
+});
+// Merchant lost their API key: issue a new one. Shown once here, the old key stops working at once.
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-newkey]');
+  if (!b) return;
+  if (!confirm(`Give ${b.dataset.name} a new API key?\n\nTheir old key stops working right away (their app / website must be updated with the new one). The new key is shown only once.`)) return;
+  try {
+    const r = await api('/api/merchants/' + encodeURIComponent(b.dataset.newkey) + '/rotate-key', { method: 'POST' });
+    $('#keyOut').innerHTML = `<p style="margin-top:14px"><b>New key for ${esc(b.dataset.name)}</b>, copy it now, it won't be shown again:</p>
+      <div class="key"><code>${esc(r.api_key)}</code><button type="button" id="cpKey">Copy</button></div>`;
+    copyBtn($('#cpKey'), r.api_key);
+    load();
+  } catch (x) { $('#err').textContent = x.message; }
+});
+load();
+</script>
+</body></html>

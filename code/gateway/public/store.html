@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scantopay — Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="spark" viewBox="0 0 100 100"><g fill="currentColor">
+    <rect x="45" y="4" width="10" height="92" rx="1.5"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(45 50 50)"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(90 50 50)"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(135 50 50)"/></g></symbol>
+</defs></svg>
+<div class="frame">
+  <header class="top">
+    <div class="lockup"><svg class="spark"><use href="#spark"/></svg>
+      <div class="wm">Demo Store<small>Powered by Scantopay</small></div></div>
+    <nav class="nav"><a href="/store">Store</a><a href="/admin">Merchant</a></nav>
+  </header>
+  <div class="wrap">
+    <div class="banner">Demo storefront for testing the Scantopay checkout flow end to end. Your real store (Jazz94) connects via Shopify.</div>
+    <div class="eyebrow"><svg class="spark"><use href="#spark"/></svg>Scantopay · Demo</div>
+    <h1>Test the<br><span class="mute">UPI</span> checkout</h1>
+    <p class="sub">Pick any product to run the full pay → verify → confirm flow.</p>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+<script>
+const PRODUCTS = [
+  { emoji:'🧪', name:'₹1 Test Item', price:1 },
+  { emoji:'🧥', name:'Winter Puffer Jacket', price:899 },
+  { emoji:'👕', name:'Everyday Cotton Tee',   price:499 },
+  { emoji:'🧶', name:'Knit Sweater',          price:749 },
+  { emoji:'🦺', name:'Reflective Raincoat',   price:1099 },
+  { emoji:'🎽', name:'Cooling Vest',          price:649 },
+  { emoji:'🧣', name:'Festive Bandana Set',   price:299 },
+];
+document.getElementById('grid').innerHTML = PRODUCTS.map((p,i)=>`
+  <div class="product"><div class="pic">${p.emoji}</div>
+    <div class="body"><h3>${p.name}</h3><div class="price">₹${p.price}</div>
+      <button onclick="buy(${i})">Buy with UPI</button></div></div>`).join('');
+async function buy(i){
+  const p = PRODUCTS[i];
+  // No customer here — checkout collects & verifies the buyer's details (first-party).
+  const res = await fetch('/api/orders',{method:'POST',headers:{'content-type':'application/json'},
+    body: JSON.stringify({ amount:p.price, items:[{name:p.name,qty:1,price:p.price}], method:'upi' })});
+  const order = await res.json();
+  location.href = '/checkout?id=' + order.id;
+}
+</script>
+</body></html>

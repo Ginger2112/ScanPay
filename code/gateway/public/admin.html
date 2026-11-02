@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merchant — Scantopay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="spark" viewBox="0 0 100 100"><g fill="currentColor">
+    <rect x="45" y="4" width="10" height="92" rx="1.5"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(45 50 50)"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(90 50 50)"/>
+    <rect x="45" y="4" width="10" height="92" rx="1.5" transform="rotate(135 50 50)"/></g></symbol>
+</defs></svg>
+<div class="frame">
+  <header class="top">
+    <div class="lockup"><svg class="spark"><use href="#spark"/></svg>
+      <div class="wm">Scantopay<small>Merchant · Payment Desk</small></div></div>
+    <nav class="nav"><a href="/store">Store</a><a href="/admin">Merchant</a></nav>
+  </header>
+  <div class="wrap">
+    <div class="eyebrow"><svg class="spark"><use href="#spark"/></svg>Live payment desk</div>
+    <h1>Orders</h1>
+    <p class="sub">In production the <b>Simulate payment</b> button is replaced by the Gmail Axis-alert observer.</p>
+
+    <div class="card" style="margin-bottom:22px">
+      <div class="row sb" style="flex-wrap:wrap;gap:14px">
+        <div><b style="color:var(--wine)">Simulate a bank credit</b>
+          <div class="muted">Matches the oldest awaiting order by amount — exactly what the observer will do.</div></div>
+        <div class="row">
+          <input class="field" id="amt" placeholder="Amount e.g. 899" style="max-width:190px">
+          <button class="auto" onclick="credit()">Mark credited</button>
+        </div>
+      </div>
+    </div>
+
+    <table><thead><tr>
+      <th>Order</th><th>Amount</th><th>Items</th><th>Status</th><th>UTR</th><th></th>
+    </tr></thead><tbody id="rows"></tbody></table>
+  </div>
+</div>
+<script>
+const esc=(s)=>String(s??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const badge=(s)=>`<span class="badge b-${esc(s)}">${esc(String(s).replace('_',' '))}</span>`;
+async function load(){
+  const orders = await (await fetch('/api/orders')).json();
+  document.getElementById('rows').innerHTML = orders.map(o=>`
+    <tr><td><code>${esc(o.id)}</code></td><td>₹${Number(o.amount).toFixed(2)}</td>
+      <td>${esc(o.items.map(i=>i&&i.name).join(', '))||'—'}</td><td>${badge(o.status)}</td>
+      <td>${o.utr?`<code>${esc(o.utr)}</code>`:'—'}</td>
+      <td>${o.status==='awaiting_payment'
+        ? `<button class="auto" style="padding:8px 14px" onclick="pay('${esc(o.id)}')">Simulate payment</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">No orders yet — buy something in the store.</td></tr>';
+}
+async function pay(id){ await fetch('/api/dev/simulate-payment/'+id,{method:'POST'}); load(); }
+async function credit(){
+  const amount=document.getElementById('amt').value; if(!amount) return;
+  const r=await (await fetch('/api/dev/credit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({amount:Number(amount)})})).json();
+  if(r.error) alert(r.error);
+  document.getElementById('amt').value=''; load();
+}
+setInterval(load,2000); load();
+</script>
+</body></html>

@@ -1,0 +1,62 @@
+/* Scan Oye brand v1.1: black scale + marigold. Mint = paid only, red = failed only. */
+:root {
+  --void: #050506; --ink: #111113; --coal: #1C1C1F; --slate: #2A2A2E; --ash: #6E6E73; --mist: #C9C8C4;
+  --paper: #F2F1EE; --white: #fff; --gold: #E8A317; --gold-ink: #3A2800; --mint: #3DDC97; --err: #E5484D;
+  --line: #E2E0DB; --r: 16px;
+  --sans: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; } /* buttons are inline-flex, which would otherwise beat the hidden attribute */
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+/* Installed on iPhone the status bar is see-through, so the header clears the notch / Dynamic Island. */
+.top { background: var(--void); color: var(--paper); padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 16px max(20px, env(safe-area-inset-left)); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wm { font: 800 20px var(--sans); letter-spacing: -.04em; display: flex; align-items: center; gap: 9px; }
+.wm i { width: 22px; height: 22px; border-radius: 6px; background: var(--gold); display: inline-grid; place-items: center; color: var(--void); font: 800 13px var(--sans); font-style: normal; }
+.wm b { color: var(--gold); }
+.top small { color: var(--mist); font-size: 12px; }
+main { max-width: 640px; margin: 0 auto; padding: 24px 16px calc(64px + env(safe-area-inset-bottom)); }
+.install { display: flex; gap: 12px; align-items: flex-start; }
+.install .ic { width: 44px; height: 44px; border-radius: 10px; flex: 0 0 44px; }
+.btn.sm, button.sm { padding: 7px 12px; font-size: 12px; }
+main.wide { max-width: 1000px; }
+h1 { font: 800 clamp(28px, 6vw, 40px)/1.05 var(--sans); letter-spacing: -.04em; margin: 8px 0 8px; }
+h2 { font: 800 20px/1.2 var(--sans); letter-spacing: -.02em; margin: 0 0 10px; }
+p.lead { color: var(--slate); margin: 0 0 22px; }
+.muted { color: var(--ash); font-size: 13px; }
+.card { background: var(--white); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+.dark { background: var(--coal); color: var(--paper); border-color: var(--coal); }
+label { display: block; font-weight: 700; font-size: 13px; margin: 14px 0 6px; }
+input { width: 100%; font: 400 16px var(--sans); padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--white); color: var(--ink); }
+input:focus { outline: none; border-color: var(--gold); }
+button, .btn { appearance: none; cursor: pointer; font: 700 15px var(--sans); border: 0; border-radius: 999px; padding: 13px 20px;
+  background: var(--gold); color: var(--void); display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+button.full, .btn.full { width: 100%; margin-top: 18px; }
+button.ghost, .btn.ghost { background: transparent; color: inherit; border: 1.5px solid currentColor; }
+button:disabled { opacity: .55; cursor: default; }
+.mono, code { font-family: var(--mono); font-size: 13px; }
+.key { display: flex; gap: 8px; align-items: center; background: var(--paper); border-radius: 10px; padding: 10px 12px; word-break: break-all; }
+.key code { flex: 1; }
+.key button { padding: 6px 12px; font-size: 12px; }
+.qr { background: var(--white); border-radius: 12px; padding: 12px; width: 220px; max-width: 100%; margin: 6px auto; }
+.qr svg { display: block; width: 100%; height: auto; }
+.steps { padding-left: 20px; margin: 8px 0 0; }
+.steps li { margin-bottom: 6px; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.tick { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 800; }
+.tick.ok { background: var(--mint); color: var(--void); }
+.tick.wait { background: var(--slate); color: var(--mist); }
+.err { color: var(--err); font-weight: 600; margin-top: 10px; min-height: 1em; }
+.warn { background: #FFF4DB; color: var(--gold-ink); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--ash); font-weight: 600; }
+.amt { font-family: var(--mono); white-space: nowrap; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--paper); }
+.pill.paid { background: var(--mint); color: var(--void); }
+.pill.bad { background: var(--err); color: #fff; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row > * { flex: 1; }
+.scroll { overflow-x: auto; }
+[hidden] { display: none !important; }

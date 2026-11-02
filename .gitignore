@@ -1,0 +1,30 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.properties
+refresh-secret-key.ps1
+# data + databases
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+# deps, builds, logs
+node_modules/
+.next/
+build/
+dist/
+.gradle/
+*.log
+*.tsbuildinfo
+.temp/
+# local backups and big binaries
+backups/
+*.bak
+*.bak-*
+*.tgz
+*.apk
+.DS_Store

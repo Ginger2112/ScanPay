@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:baseupi.app)",
+      "WebFetch(domain:wordpress.org)",
+      "Bash(npm --version)",
+      "Bash(git --version)",
+      "Bash(npm install *)",
+      "Bash(cp -n .env.example .env)",
+      "Bash(npx prisma *)",
+      "Bash(npm test *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"=== typecheck exit: $? ===\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' localhost:3000/api/v1/payment-intents -H 'Authorization: Bearer upi_sk_test_qnm48kqqAF6XOMM35IBH_73ulAAiXOTJeIUyUE0_rAg' -H 'Content-Type: application/json' -d '{\"reference\":\"ORD-1001\",\"amountPaise\":49900,\"description\":\"Test order\"}')",
+      "Bash(npx tsx -e ' *)",
+      "Bash(npx tsx *)",
+      "Bash(python3 -)",
+      "Read(//tmp/**)",
+      "Bash(curl -s localhost:3000/api/v1/payment-intents -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{\"reference\":\"DEMO-__CMDSUB_OUTPUT__\",\"amountPaise\":129900,\"description\":\"Blue cotton shirt\"}')",
+      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)",
+      "Bash(curl -s -o /dev/null -w \"  http://127.0.0.1:3000/dashboard -> %{http_code}\\\\n\" --max-time 15 http://127.0.0.1:3000/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"  http://localhost:3000/dashboard -> %{http_code}\\\\n\" --max-time 15 http://localhost:3000/dashboard)",
+      "WebFetch(domain:imbpayment.co.in)"
+    ]
+  }
+}

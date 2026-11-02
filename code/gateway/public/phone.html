@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scan Oye phone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#050506">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scan Oye">
+<link rel="stylesheet" href="/scanoye.css">
+</head><body>
+<!-- Shown inside the Android app after pairing: /phone#<phone token>. The token never goes in the URL sent to the server. -->
+<div class="top"><span class="wm"><i>✓</i>scan<b>oye</b>.</span><small id="mn"></small></div>
+<main>
+  <div class="card dark">
+    <p class="status"><span class="tick ok">✓</span> This phone is confirming UPI payments</p>
+    <p class="muted" style="color:var(--mist)">Keep it on, on Wi-Fi or data, with the bank SIM inside. You don't need to open anything.</p>
+    <div class="row" style="margin-top:10px">
+      <div><div class="muted" style="color:var(--mist)">Paid today</div><div class="amt" style="font-size:22px" id="today">—</div></div>
+      <div><div class="muted" style="color:var(--mist)">Payments today</div><div class="amt" style="font-size:22px" id="count">—</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Latest payments</h2>
+    <table><tbody id="pays"></tbody></table>
+  </div>
+  <div class="card">
+    <h2>Bank credits this phone saw</h2>
+    <table><tbody id="credits"></tbody></table>
+  </div>
+  <div class="err" id="err"></div>
+</main>
+<script src="/scanoye.js"></script>
+<script>
+const TOKEN = decodeURIComponent(location.hash.slice(1));
+async function load() {
+  try {
+    const r = await fetch('/api/observer/summary', { headers: { 'x-observer-token': TOKEN } });
+    if (!r.ok) throw new Error(r.status === 401 ? 'This phone is no longer connected. Scan a fresh QR from the merchant page.' : 'Can\'t reach Scan Oye right now.');
+    const s = await r.json();
+    $('#err').textContent = '';
+    $('#mn').textContent = s.merchant.name;
+    $('#today').textContent = rs(s.stats.revenue_today);
+    $('#count').textContent = s.stats.paid_today;
+    $('#pays').innerHTML = s.payments.slice(0, 15).map((p) => `<tr><td>${esc(p.ref_name || p.id)}<div class="muted">${when(p.paid_at || p.expires_at)}</div></td><td class="amt">${rs(p.pay_amount)}</td><td>${statusPill(p.status)}</td></tr>`).join('')
+      || '<tr><td class="muted">No payments yet.</td></tr>';
+    $('#credits').innerHTML = s.credits.slice(0, 15).map((c) => `<tr><td>${esc(c.payer || '—')}<div class="muted">${when(c.at)}</div></td><td class="amt">${rs(c.amount)}</td><td>${c.status === 'matched' ? '<span class="pill paid">Matched</span>' : '<span class="pill">Unmatched</span>'}</td></tr>`).join('')
+      || '<tr><td class="muted">Nothing yet.</td></tr>';
+  } catch (x) { $('#err').textContent = x.message; }
+}
+load(); setInterval(load, 10000);
+</script>
+</body></html>
