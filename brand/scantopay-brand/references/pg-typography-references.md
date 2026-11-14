@@ -4,7 +4,7 @@
 
 Links open on in.pinterest.com. "Style" is what the lettering does, so we can borrow the idea without copying the brand.
 
-## A. Clean lowercase grotesk (closest to scantopay.)
+## A. Clean lowercase grotesk (closest to scanpay.)
 
 | # | Reference | Style | Link |
 |---|---|---|---|
@@ -54,7 +54,7 @@ Links open on in.pinterest.com. "Style" is what the lettering does, so we can bo
 | 29 | Typography & Color System (PP Mori) | Black + one warm accent, type scale | search "Typography & Color System PP Mori" on Pinterest |
 | 30 | Fintech logo designs (PayFast) | Navy + small icon set | https://in.pinterest.com/pin/393924298663268958/ |
 
-## Fonts these references use, and fit for Scantopay
+## Fonts these references use, and fit for ScanPay
 
 | Font | Seen in | Free? | Fit |
 |---|---|---|---|

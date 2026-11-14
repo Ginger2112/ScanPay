@@ -1,16 +1,16 @@
-# Scan Oye multi-merchant + Tably auto-confirm: changes log
+# ScanPay multi-merchant + Tably auto-confirm: changes log
 
 *31 Oct 2026 · built and tested locally only. Nothing deployed, pushed or committed.*
 
 ## What it does now
 
-- **Any business can use Scan Oye.** Each business is its own merchant with its own UPI ID, API key, signed webhook and paired Android phone. Money always lands in the business's own UPI ID.
+- **Any business can use ScanPay.** Each business is its own merchant with its own UPI ID, API key, signed webhook and paired Android phone. Money always lands in the business's own UPI ID.
 - **About 1 click to join.**
   - Any client: an invite link (`/start?invite=…`), then business name + UPI ID, then a pairing QR.
-  - Tably restaurants: Owner → Business details → **Connect Scan Oye**. The UPI ID is already filled in.
-- **Phone pairing.** Scan the QR with the phone's normal camera. The page opens the Scan Oye app (or downloads it), and the phone links itself. The QR works once, for 10 minutes.
-- **Auto-confirm.** The phone forwards the bank SMS (or a UPI business-app alert). Scan Oye matches it to the right payment of the right business, then sends a signed "paid" message. Tably marks the bill **Paid ✓ (auto)**.
-- **Fallback.** Manual UTR, cash and card on the Tably counter work exactly as before. iPhone-only businesses use **Mark paid** on the Scan Oye merchant app.
+  - Tably restaurants: Owner → Business details → **Connect ScanPay**. The UPI ID is already filled in.
+- **Phone pairing.** Scan the QR with the phone's normal camera. The page opens the ScanPay app (or downloads it), and the phone links itself. The QR works once, for 10 minutes.
+- **Auto-confirm.** The phone forwards the bank SMS (or a UPI business-app alert). ScanPay matches it to the right payment of the right business, then sends a signed "paid" message. Tably marks the bill **Paid ✓ (auto)**.
+- **Fallback.** Manual UTR, cash and card on the Tably counter work exactly as before. iPhone-only businesses use **Mark paid** on the ScanPay merchant app.
 - **Arun's original setup** (ChargeOS wallet, Jazz94/Careatic store, Shopify, the existing phone) is merchant `default` and works unchanged.
 
 ## Real vs still demo
@@ -22,12 +22,12 @@
 | Android app v0.4 (1-tap pairing, UPI app alerts, heartbeat, retry queue, unlink) | Built, **not yet tested on a real phone** |
 | SMS formats AU + IDBI | Real messages, verified |
 | SMS formats SBI, HDFC, ICICI, Kotak, Axis, BoB, PNB, Canara, PhonePe/Paytm/GPay Business | **Unverified** (public sample formats). Add each client's first real SMS to `test/parse-bank.test.mjs` |
-| iPhone app (Scan Oye merchant app on the home screen) | Built. Needs Scan Oye deployed to install on a phone |
-| Live server | **Not deployed.** Needs `PARTNER_KEYS` and `PUBLIC_URL` on Scan Oye, and `SCANOYE_URL` + `SCANOYE_PARTNER_KEY` on Tably |
+| iPhone app (ScanPay merchant app on the home screen) | Built. Needs ScanPay deployed to install on a phone |
+| Live server | **Not deployed.** Needs `PARTNER_KEYS` and `PUBLIC_URL` on ScanPay, and `SCANOYE_URL` + `SCANOYE_PARTNER_KEY` on Tably |
 
 ## Files changed
 
-### Scan Oye (`scan-oye/code/gateway`)
+### ScanPay (`scan-oye/code/gateway`)
 Backup taken before any change: `scan-oye/backups/gateway-before-multimerchant-2026-10-31.tgz`.
 
 - **New:**
@@ -52,11 +52,11 @@ Backup taken before any change: `scan-oye/backups/gateway-before-multimerchant-2
   - `lib/scanoye.js`: client; the key and secret are stored encrypted.
   - `lib/paid.js`: one shared "mark bill paid" for the counter and for auto.
   - `routes/scanoye.js`: connect, pairing, switch-off, the diner's exact amount, the signed webhook.
-  - `scripts/scanoye-test.js`: runs the real Scan Oye and Tably together.
+  - `scripts/scanoye-test.js`: runs the real ScanPay and Tably together.
 - **Changed:**
   - `server.js`: route + raw-body webhook.
-  - `routes/counter.js`: pay/confirm uses `markPaid`; tells Scan Oye about manual payments; end-of-day lists UPI events.
-  - `routes/owner.js`: a UPI change switches Scan Oye over at once.
+  - `routes/counter.js`: pay/confirm uses `markPaid`; tells ScanPay about manual payments; end-of-day lists UPI events.
+  - `routes/owner.js`: a UPI change switches ScanPay over at once.
   - `routes/diner.js`: claim after auto-pay.
   - `lib/restaurant.js`: `upiReceived` on the bill.
   - `lib/schema.sql`, `lib/config.js`, `.env.example`.
@@ -66,7 +66,7 @@ Backup taken before any change: `scan-oye/backups/gateway-before-multimerchant-2
   - `package.json`.
 
 ### Skills
-`os-studio/.claude/skills/scan-oye`, `.claude/skills/tably` and `tably/.claude/skills/tably` were updated for the 31 Oct decision. `os-studio/CLAUDE.md` still says "Keep Scan Oye out of Tably" and needs the same update.
+`os-studio/.claude/skills/scan-oye`, `.claude/skills/tably` and `tably/.claude/skills/tably` were updated for the 31 Oct decision. `os-studio/CLAUDE.md` still says "Keep ScanPay out of Tably" and needs the same update.
 
 ## Bugs found and fixed
 
@@ -79,24 +79,24 @@ QA ran in rounds. In each round, testers played one role each and every finding 
 4. **Android build failed.** The JDK loopback error is fixed in `build-apk.ps1`.
 
 ### QA round 1: Tably
-5. **Old UPI ID after a change (critical).** Diners who reopened the sheet were still sent to the old UPI ID. A UPI change now cancels open amounts and switches Scan Oye at once, and a payment is reused only if its UPI ID still matches.
-6. **Switch off didn't switch off.** The phone kept sending SMS, and the merchant and its UPI ID stayed locked. Switch off now cancels open amounts, deactivates the merchant and unlinks its phones. If Scan Oye can't be reached, the owner is warned.
+5. **Old UPI ID after a change (critical).** Diners who reopened the sheet were still sent to the old UPI ID. A UPI change now cancels open amounts and switches ScanPay at once, and a payment is reused only if its UPI ID still matches.
+6. **Switch off didn't switch off.** The phone kept sending SMS, and the merchant and its UPI ID stayed locked. Switch off now cancels open amounts, deactivates the merchant and unlinks its phones. If ScanPay can't be reached, the owner is warned.
 7. **Changed server secret.** Auto-confirm broke silently. The owner now sees a clear message and a **Reconnect** button.
 8. **"Connect another phone".** The QR vanished after 4 seconds with a false "connected" message. It now waits for a *new* phone, and an expired QR says so.
-9. **Lost "paid" webhook.** The bill stayed unpaid and the diner could pay twice. Scan Oye now retries for about 20 minutes, and Tably settles it when the diner reopens the sheet.
+9. **Lost "paid" webhook.** The bill stayed unpaid and the diner could pay twice. ScanPay now retries for about 20 minutes, and Tably settles it when the diner reopens the sheet.
 10. **Bill changed after paying.** Money was ignored, or the counter was told to "collect the rest" when the diner had overpaid. Now:
     - Part payments are kept and the next QR asks only for the rest.
     - An overpaid bill is marked paid and the counter is told how much to give back.
     - The counter shows "₹X already received by UPI".
 11. **Tip saved too early.** Opening the UPI sheet saved the tip on the bill even if the diner then paid cash. The tip is now saved only when the bill is paid.
-12. **False "stray money" alert.** A manual "Mark paid (UPI)" at the counter made the later bank SMS look like stray money. The counter now tells Scan Oye the payment is paid, so the SMS links to it. Cash and card cancel the open amount.
+12. **False "stray money" alert.** A manual "Mark paid (UPI)" at the counter made the later bank SMS look like stray money. The counter now tells ScanPay the payment is paid, so the SMS links to it. Cash and card cancel the open amount.
 13. **Claim vs webhook race.** "I've paid" racing the webhook could push a paid bill back to "paying" (double counting), or show "No open bill". Fixed.
 14. **Double tap.** Two taps on Pay could create two live payments for one bill. Requests are now handled one at a time per bill.
 15. **Stale amount.** The UPI sheet kept an old amount after another order landed. It now refreshes by itself.
 16. **End-of-day gaps.** The day-end report now lists UPI part payments, overpayments, held payments and unmatched money.
 17. **Unclear alerts.** Counter and owner alerts were vague ("bill is ₹0", "partner key required"). They are now plain and specific.
 
-### QA round 1: Scan Oye server
+### QA round 1: ScanPay server
 18. **Fake SMS (critical).** An SMS from a personal phone number copying bank wording could confirm a payment. SMS from plain phone numbers are now ignored. Real bank SMS come from headers like "VM-HDFCBK".
 19. **Cancel (critical).** A cancelled payment freed its amount at once, so its late SMS could confirm a different order. The amount now stays held for 30 minutes, and the late SMS raises an "unmatched" alert instead.
 20. **Mark paid by hand.** An order marked paid by hand freed its amount, so its real SMS later confirmed the next order. The SMS now links to the hand-paid order.
@@ -122,30 +122,30 @@ QA ran in rounds. In each round, testers played one role each and every finding 
 35. **Revenue totals.** They now count what actually arrived, not the list price.
 
 ### QA round 1: Android app (v0.3)
-36. **Pairing confirmation.** Pairing now asks "Connect this phone to Scan Oye at <server>?". Only https servers (or your own Wi-Fi for testing) are accepted, so a bad link can't redirect the phone's SMS elsewhere.
+36. **Pairing confirmation.** Pairing now asks "Connect this phone to ScanPay at <server>?". Only https servers (or your own Wi-Fi for testing) are accepted, so a bad link can't redirect the phone's SMS elsewhere.
 37. **Rotation.** Turning the phone during or after pairing no longer burns the QR or shows "QR used".
 38. **Message filter.** The phone now forwards every message the server can read (SBI "has a credit", "You got ₹", amounts on the next line).
 39. **Notification access.** The app now asks for it after pairing, so PhonePe, Paytm and GPay Business alerts work.
-40. **Health report.** The phone tells Scan Oye whether SMS and notification access are on.
+40. **Health report.** The phone tells ScanPay whether SMS and notification access are on.
 41. **No lost messages.** If the network or server is down, messages wait in a queue on the phone and are re-sent.
 42. **Reboot.** The app starts again after a reboot.
 43. **Unlinked phones.** An unlinked phone stops, shows "This phone was unlinked", and no longer sends anything.
 44. **Pre-filled token removed.** The old test token is no longer filled in. More bank and UPI apps (Federal, IDFC, RBL, Jupiter, Fi, Amazon Pay, MobiKwik and others) are now read.
 
 ### QA round 2 (re-test after the fixes)
-45. **Re-sent "paid" message (Tably).** It could count a part payment twice, mark a half-paid bill PAID and ask staff to refund money that never came. Each Scan Oye payment now counts once per bill.
+45. **Re-sent "paid" message (Tably).** It could count a part payment twice, mark a half-paid bill PAID and ask staff to refund money that never came. Each ScanPay payment now counts once per bill.
 46. **Leftover QR (Tably).** After a bill was settled by another payment, an old QR stayed payable and extra money vanished silently. Leftover QRs are now cancelled, and a second payment on a paid bill raises an "overpaid, give back" alert.
-47. **Unreachable Scan Oye (Tably).** If Scan Oye couldn't be reached during a cancel, the QR stayed payable while Tably thought it was gone. Tably now keeps it and cancels it again next time.
+47. **Unreachable ScanPay (Tably).** If ScanPay couldn't be reached during a cancel, the QR stayed payable while Tably thought it was gone. Tably now keeps it and cancels it again next time.
 48. **Bill lowered after a part payment (Tably).** Now it's marked paid by itself, with no new QR.
 49. **Day-end and counter after a part payment (Tably).**
     - Day-end splits a bill paid partly by UPI and partly in cash into both columns, and the tamper code covers it.
     - The counter asks for the exact remaining amount.
 50. **"I've paid" after auto-pay (Tably).** Tapping it when the bill is already paid now opens the receipt directly.
-51. **XSS in the admin dashboard (Scan Oye, HIGH).** Anyone could put code in a customer or item name through the public store order and it would run in the admin dashboard; the checkout page had the same hole. Every value is now escaped, and a test fails if one isn't. **The live dashboard still has this hole until the next deploy.**
-52. **Phone gave up waiting (Scan Oye).** It timed out while the server waited for the merchant's webhook. The phone now gets its answer at once, and the webhook goes out in the background.
-53. **Faked IP (Scan Oye).** A faked IP header could get round the new limits and the admin login lockout. Forwarded IPs are trusted only from the local proxy, with `TRUST_PROXY=1`.
-54. **One payment, two credits (Scan Oye).** A push followed by its SMS was stored as two unmatched credits, so one payment could pay two bills. Now one credit.
-55. **Smaller credit (Scan Oye).** Attaching a smaller credit to a bigger payment now asks for confirmation.
+51. **XSS in the admin dashboard (ScanPay, HIGH).** Anyone could put code in a customer or item name through the public store order and it would run in the admin dashboard; the checkout page had the same hole. Every value is now escaped, and a test fails if one isn't. **The live dashboard still has this hole until the next deploy.**
+52. **Phone gave up waiting (ScanPay).** It timed out while the server waited for the merchant's webhook. The phone now gets its answer at once, and the webhook goes out in the background.
+53. **Faked IP (ScanPay).** A faked IP header could get round the new limits and the admin login lockout. Forwarded IPs are trusted only from the local proxy, with `TRUST_PROXY=1`.
+54. **One payment, two credits (ScanPay).** A push followed by its SMS was stored as two unmatched credits, so one payment could pay two bills. Now one credit.
+55. **Smaller credit (ScanPay).** Attaching a smaller credit to a bigger payment now asks for confirmation.
 56. **Android v0.4.**
     - Stricter server check: "10.evil.com" is refused.
     - Pairing survives screen changes and dark-mode switches.
@@ -155,18 +155,18 @@ QA ran in rounds. In each round, testers played one role each and every finding 
 Known limit, not fixed: webhook-link checks look at the hostname, not the IP it resolves to (DNS rebinding). Closing that needs DNS pinning.
 
 ## Tests (final, all passing)
-- Scan Oye `npm test`: AU/IDBI parser 13, multi-bank parser 30, auto-confirm 22, multi-merchant 59, security 4. **Total 128.**
-- Tably `npm test`: smoke test 147 + Scan Oye-in-Tably end to end 47 (runs both real servers). **Total 194.**
+- ScanPay `npm test`: AU/IDBI parser 13, multi-bank parser 30, auto-confirm 22, multi-merchant 59, security 4. **Total 128.**
+- Tably `npm test`: smoke test 147 + ScanPay-in-Tably end to end 47 (runs both real servers). **Total 194.**
 - Browser check (local preview, phone size):
   - Owner connects in 1 click, and the phone pairs within 4 s.
-  - The diner pays ₹207.50 (bill + tip) and the receipt opens by itself: "Confirmed by Scan Oye (auto)".
+  - The diner pays ₹207.50 (bill + tip) and the receipt opens by itself: "Confirmed by ScanPay (auto)".
   - A merchant signs up from an invite link.
   - Merchant app: ₹2 test payment, then Mark paid with UTR.
 - Android: v0.4 builds (5.6 MB). **Not yet tested on a real phone.**
 
 ## Deploy checklist (needs Arun's OK, not done)
-0. Live `public/dashboard.html` and `public/app.css` already carry the iPhone home-screen polish from the ChargeOS session (deployed 31 Oct 04:14, backup `/opt/scantopay/public.bak-20261031-041458`). The same edits are in the local copies, so deploying local `public/` keeps them. Diff against live first anyway. QA left 6 unpaid ₹50 ChargeOS test top-ups and possibly one ₹1 "QA iPhone test" order on live Scan Oye (no money moved).
-1. Scan Oye on the droplet:
+0. Live `public/dashboard.html` and `public/app.css` already carry the iPhone home-screen polish from the ChargeOS session (deployed 31 Oct 04:14, backup `/opt/scantopay/public.bak-20261031-041458`). The same edits are in the local copies, so deploying local `public/` keeps them. Diff against live first anyway. QA left 6 unpaid ₹50 ChargeOS test top-ups and possibly one ₹1 "QA iPhone test" order on live ScanPay (no money moved).
+1. ScanPay on the droplet:
    - Upload the code (excluding `data.db`).
    - Set `PARTNER_KEYS=tably:<long random secret>`, `PUBLIC_URL=https://pay.arunsamanta.com`, `DEMO_MODE=off`, `TRUST_PROXY=1`, and keep the existing `OBSERVER_TOKEN`.
    - If the site is not behind Cloudflare, add `header_up -Cf-Connecting-Ip` to Caddy's `reverse_proxy` block.
@@ -176,7 +176,7 @@ Known limit, not fixed: webhook-link checks look at the hostname, not the IP it 
 4. iPhone: open `https://pay.arunsamanta.com/merchant` in Safari, then Share → Add to Home Screen.
 
 ## Deploy log
-**Stage A: Scan Oye deployed to pay.arunsamanta.com (31 Oct 2026, ~05:05 IST, with Arun's OK)**
+**Stage A: ScanPay deployed to pay.arunsamanta.com (31 Oct 2026, ~05:05 IST, with Arun's OK)**
 - Backup:
   - `/opt/scantopay.bak-20261030-233434`: code, `data.db`, `.env`.
   - `/etc/caddy/Caddyfile.bak-20261031-scanoye`.

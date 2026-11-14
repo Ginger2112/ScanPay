@@ -1,4 +1,4 @@
-// Merchants: every business that collects into its OWN UPI ID through Scan Oye.
+// Merchants: every business that collects into its OWN UPI ID through ScanPay.
 // 'default' is Arun's original single-merchant setup, read live from config/settings so
 // ChargeOS, Jazz94/Careatic and the Shopify connector keep working exactly as before.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -83,7 +83,7 @@ export function createMerchant({ name, vpa, webhook_url = '', partner = null, ex
   if (partner && external_ref) {
     const ex = db.prepare('SELECT * FROM merchants WHERE partner = ? AND external_ref = ?').get(partner, String(external_ref));
     if (ex) {
-      if (vpaTaken(vpa, ex.id)) throw new Error('this UPI ID is already connected to another Scan Oye merchant');
+      if (vpaTaken(vpa, ex.id)) throw new Error('this UPI ID is already connected to another ScanPay merchant');
       db.prepare('UPDATE merchants SET name = ?, vpa = ?, webhook_url = ?, active = 1 WHERE id = ?').run(name, vpa, hook || ex.webhook_url, ex.id);
       const out = { merchant: publicView(getMerchant(ex.id)), created: false, webhook_secret: ex.webhook_secret };
       // A deactivated merchant coming back always gets a fresh key: the old one stays dead.
@@ -92,7 +92,7 @@ export function createMerchant({ name, vpa, webhook_url = '', partner = null, ex
       return out;
     }
   }
-  if (vpaTaken(vpa)) throw new Error('this UPI ID is already connected to another Scan Oye merchant');
+  if (vpaTaken(vpa)) throw new Error('this UPI ID is already connected to another ScanPay merchant');
 
   const id = 'mer_' + randomBytes(6).toString('hex');
   const key = 'sk_live_' + rand(24);
@@ -116,7 +116,7 @@ export function updateMerchant(id, { name, vpa, webhook_url }) {
     webhook_url: webhook_url !== undefined ? cleanUrl(webhook_url) : m.webhook_url };
   if (!next.name) throw new Error('business name required');
   if (!VPA_RE.test(next.vpa)) throw new Error("that UPI ID doesn't look right");
-  if (vpaTaken(next.vpa, id)) throw new Error('this UPI ID is already connected to another Scan Oye merchant');
+  if (vpaTaken(next.vpa, id)) throw new Error('this UPI ID is already connected to another ScanPay merchant');
   db.prepare('UPDATE merchants SET name = ?, vpa = ?, webhook_url = ? WHERE id = ?').run(next.name, next.vpa, next.webhook_url, id);
   return publicView(getMerchant(id));
 }

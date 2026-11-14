@@ -31,7 +31,7 @@ class ObserverService : Service() {
         )
         val n = NotificationCompat.Builder(this, ch)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("Scan Oye is confirming payments")
+            .setContentTitle("ScanPay is confirming payments")
             .setContentText("Watching for bank and UPI credit alerts")
             .setOngoing(true)
             .build()

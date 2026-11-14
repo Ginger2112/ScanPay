@@ -1,4 +1,4 @@
-// Shared helpers for the Scan Oye merchant pages (start, merchant, pair, phone, admin).
+// Shared helpers for the ScanPay merchant pages (start, merchant, pair, phone, admin).
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rs = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -43,7 +43,7 @@ function installHint() {
   try { dismissed = localStorage.getItem('scanoye_install_hint') === 'no'; } catch {}
   if (!ios || isInstalled() || dismissed) return '';
   return `<div class="card install" id="installHint"><img class="ic" src="/icons/apple-touch-icon.png" alt="">
-    <div><b>Put Scan Oye on your home screen</b><div class="muted">In Safari tap <b>Share</b> (the square with the arrow), then <b>Add to Home Screen</b>. It opens full-screen like an app.</div>
+    <div><b>Put ScanPay on your home screen</b><div class="muted">In Safari tap <b>Share</b> (the square with the arrow), then <b>Add to Home Screen</b>. It opens full-screen like an app.</div>
     <div class="muted">The home-screen app asks for your API key once: copy it from your saved note first.</div>
     <button class="ghost sm" style="margin-top:8px" onclick="try{localStorage.setItem('scanoye_install_hint','no')}catch(e){};this.closest('#installHint').remove()">Got it</button></div></div>`;
 }
@@ -51,6 +51,6 @@ function installHint() {
 function phoneLine(p) {
   if (!p || !p.paired) return '<span class="status"><span class="tick wait">…</span> Phone not connected yet</span>';
   return `<span class="status"><span class="tick ok">✓</span> Phone connected</span> <span class="muted">· ${esc(p.device || 'Android')} · last seen ${ago(p.last_seen)}</span>`
-    + (p.online ? '' : '<div class="warn">The phone hasn\'t checked in for 30+ minutes. Open the Scan Oye app on it and keep it on Wi-Fi or data.</div>')
-    + (p.sms_ok === false ? '<div class="warn">SMS permission is off on the phone: open the Scan Oye app and allow SMS</div>' : '');
+    + (p.online ? '' : '<div class="warn">The phone hasn\'t checked in for 30+ minutes. Open the ScanPay app on it and keep it on Wi-Fi or data.</div>')
+    + (p.sms_ok === false ? '<div class="warn">SMS permission is off on the phone: open the ScanPay app and allow SMS</div>' : '');
 }

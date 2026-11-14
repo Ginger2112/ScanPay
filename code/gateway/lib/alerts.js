@@ -7,7 +7,7 @@ export async function notifyMerchant(text) {
   console.log(`[alert] ${text}`);
   if (config.merchant.alertPhone && wa.isReady()) {
     try {
-      await wa.sendText(config.merchant.alertPhone, `Scantopay: ${text}`);
+      await wa.sendText(config.merchant.alertPhone, `ScanPay: ${text}`);
       return { sent: 'whatsapp' };
     } catch (e) {
       console.log('[alert] whatsapp send failed:', e.message);

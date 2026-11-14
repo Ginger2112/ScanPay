@@ -1,4 +1,4 @@
-// Shopify Admin API client — marks a Shopify order as paid when Scantopay
+// Shopify Admin API client — marks a Shopify order as paid when ScanPay
 // confirms the UPI payment. Used only when config.shopify is set (Jazz94).
 import { config } from '../config.js';
 

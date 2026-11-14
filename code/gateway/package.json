@@ -2,7 +2,7 @@
   "name": "scantopay",
   "version": "0.1.0-demo",
   "private": true,
-  "description": "Scantopay — self-hosted UPI + COD payment gateway with a payments CRM. Demo build.",
+  "description": "ScanPay — self-hosted UPI + COD payment gateway with a payments CRM. Demo build.",
   "type": "module",
   "engines": {
     "node": ">=22.5.0"

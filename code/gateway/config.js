@@ -4,7 +4,7 @@ export const config = {
 
   // Merchant receiving account (DEMO values — not a real VPA).
   merchant: {
-    name: process.env.MERCHANT_NAME || 'Scantopay',
+    name: process.env.MERCHANT_NAME || 'ScanPay',
     // UPI VPA money is collected into (AU Bank account behind a GPay handle).
     vpa: process.env.MERCHANT_VPA || 'arunsamanta17-1@okaxis',
     // WhatsApp number that gets "payment needs attention" alerts (e.g. 919xxxxxxxxx).

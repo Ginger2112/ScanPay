@@ -1,7 +1,7 @@
-// Scantopay — Gmail bank-alert observer (backup detection source).
+// ScanPay — Gmail bank-alert observer (backup detection source).
 //
 // Connects to a Gmail inbox over IMAP, watches for unread Axis Bank credit
-// alerts, parses amount + UTR, and posts them to the Scantopay payment core,
+// alerts, parses amount + UTR, and posts them to the ScanPay payment core,
 // which matches them to the pending order and auto-confirms.
 //
 // This runs as its OWN process against ANY Gmail account — independent of the
@@ -77,7 +77,7 @@ async function scan(client) {
 }
 
 async function main() {
-  console.log(`Scantopay Gmail observer → ${CFG.user} (poll ${CFG.pollSec}s, core ${CFG.pgBase})`);
+  console.log(`ScanPay Gmail observer → ${CFG.user} (poll ${CFG.pollSec}s, core ${CFG.pgBase})`);
   const client = new ImapFlow({
     host: CFG.host, port: CFG.port, secure: true,
     auth: { user: CFG.user, pass: CFG.pass }, logger: false,

@@ -205,7 +205,7 @@ export function cancelOrder(id) {
   return setStatus(id, 'cancelled', { cancelled_at: now() });
 }
 
-// Merchant left Scan Oye: close every payment that could still be paid.
+// Merchant left ScanPay: close every payment that could still be paid.
 export function cancelOpenOrders(merchantId) {
   const open = db.prepare(`SELECT id FROM orders WHERE merchant_id = ? AND status IN ('awaiting_payment','utr_submitted','expired')`).all(merchantId);
   for (const { id } of open) cancelOrder(id);

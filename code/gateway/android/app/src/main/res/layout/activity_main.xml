@@ -34,7 +34,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Scan the pairing QR from your Scan Oye or Tably page with this phone's camera. That connects it in one tap. Advanced: type the server and token below."
+                android:text="Scan the pairing QR from your ScanPay or Tably page with this phone's camera. That connects it in one tap. Advanced: type the server and token below."
                 android:textColor="#C9C8C4"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="12dp" />

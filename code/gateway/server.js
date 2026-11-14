@@ -201,7 +201,7 @@ async function v1(req, res, url, seg) {
   if (seg[2] === 'signup' && method === 'POST') {
     if (limited(req, res, 'signup')) return;
     const b = await readBody(req);
-    if (!M.inviteOk(b.invite)) return json(res, 403, { error: 'This invite link is used or not valid. Ask Scan Oye for a new one.' });
+    if (!M.inviteOk(b.invite)) return json(res, 403, { error: 'This invite link is used or not valid. Ask ScanPay for a new one.' });
     const r = M.createMerchant({ name: b.name, vpa: b.vpa, webhook_url: b.webhook_url });
     M.useInvite(b.invite, r.merchant.id);
     console.log(`[merchant] signed up ${r.merchant.id} "${r.merchant.name}"`);
@@ -235,7 +235,7 @@ async function v1(req, res, url, seg) {
     console.log(`[phone] ${m.id} unlinked ${n} phone(s)`);
     return json(res, 200, { revoked: n });
   }
-  // POST /api/v1/me/deactivate -> leave Scan Oye: key dies, phones unlinked, open payments cancelled, UPI ID freed.
+  // POST /api/v1/me/deactivate -> leave ScanPay: key dies, phones unlinked, open payments cancelled, UPI ID freed.
   // A partner can bring the merchant back later (POST /api/v1/merchants) and gets a fresh key.
   if (seg[2] === 'me' && seg[3] === 'deactivate' && method === 'POST') {
     const phones = M.deactivate(m.id);
@@ -664,7 +664,7 @@ setInterval(async () => {
       continue;
     }
     await notifyMerchant(`₹${c.amount} received${c.payer ? ' from ' + c.payer : ''} (UTR ${c.utr || 'n/a'}) `
-      + `but no order matched. Open Scantopay → Orders → Bank credits to assign it.`);
+      + `but no order matched. Open ScanPay → Orders → Bank credits to assign it.`);
     markCreditAlerted(c.id);
   }
   for (const o of stuckUtr) {
@@ -676,7 +676,7 @@ setInterval(async () => {
 }, 60 * 1000);
 
 server.listen(config.port, () => {
-  console.log(`\n  Scantopay (Careatic demo) running`);
+  console.log(`\n  ScanPay (Careatic demo) running`);
   console.log(`  Store      http://localhost:${config.port}/store`);
   console.log(`  Admin      http://localhost:${config.port}/admin`);
   console.log(`  Merchant   ${config.merchant.name}  VPA ${config.merchant.vpa}`);

@@ -1,4 +1,4 @@
-/* Scan Oye brand v1.1: black scale + marigold. Mint = paid only, red = failed only. */
+/* ScanPay brand v1.1: black scale + marigold. Mint = paid only, red = failed only. */
 :root {
   --void: #050506; --ink: #111113; --coal: #1C1C1F; --slate: #2A2A2E; --ash: #6E6E73; --mist: #C9C8C4;
   --paper: #F2F1EE; --white: #fff; --gold: #E8A317; --gold-ink: #3A2800; --mint: #3DDC97; --err: #E5484D;

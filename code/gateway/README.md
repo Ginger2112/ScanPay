@@ -1,4 +1,4 @@
-# Scantopay (demo)
+# ScanPay (demo)
 
 Self-hosted UPI + COD payment gateway with a payments CRM, rewritten clean as a
 single Node process. Real QR + a working Gmail bank-alert observer; payment

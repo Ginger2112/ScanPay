@@ -1,4 +1,4 @@
-// Scan Oye app shell: the merchant pages open instantly and still load without signal.
+// ScanPay app shell: the merchant pages open instantly and still load without signal.
 // Payments and API calls always go to the network (never cached), so numbers are never stale.
 const CACHE = 'scanoye-v1';
 const SHELL = ['/merchant', '/start', '/scanoye.css', '/scanoye.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];

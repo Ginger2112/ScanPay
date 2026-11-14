@@ -1,6 +1,6 @@
 {
-  "name": "Scan Oye",
-  "short_name": "Scan Oye",
+  "name": "ScanPay",
+  "short_name": "ScanPay",
   "description": "Zero-fee UPI payments, confirmed by themselves.",
   "id": "/merchant",
   "start_url": "/merchant?source=app",

@@ -1,17 +1,17 @@
-# Scantopay ↔ Shopify (Jazz94) — connect kit
+# ScanPay ↔ Shopify (Jazz94) — connect kit
 
-Wires Scantopay UPI into a Shopify store without being an approved payments
-partner. Native cart + checkout stay Shopify's; Scantopay collects over UPI on
+Wires ScanPay UPI into a Shopify store without being an approved payments
+partner. Native cart + checkout stay Shopify's; ScanPay collects over UPI on
 the order-status page and **auto-marks the Shopify order paid** when confirmed.
 
 ## Flow
 ```
-Buyer checks out on Shopify → picks "UPI (Scantopay)" (a manual method)
+Buyer checks out on Shopify → picks "UPI (ScanPay)" (a manual method)
   → order created, financial_status = pending
-  → order-status page embed creates a linked Scantopay order (carries the Shopify order GID)
+  → order-status page embed creates a linked ScanPay order (carries the Shopify order GID)
   → buyer sees the UPI QR, pays, enters the UTR
-  → you Approve in the Scantopay CRM
-  → Scantopay confirms → calls Shopify Admin API orderMarkAsPaid → order shows PAID
+  → you Approve in the ScanPay CRM
+  → ScanPay confirms → calls Shopify Admin API orderMarkAsPaid → order shows PAID
 ```
 
 ## One-time setup (when the Jazz94 store is live)
@@ -23,14 +23,14 @@ Buyer checks out on Shopify → picks "UPI (Scantopay)" (a manual method)
 
 **2. Manual payment method** (so UPI shows at checkout)
 - Settings → Payments → **Manual payment methods** → Create custom payment method.
-- Name it exactly **`UPI (Scantopay)`**. Add instructions like: "Pay via UPI on the
+- Name it exactly **`UPI (ScanPay)`**. Add instructions like: "Pay via UPI on the
   next page; your order confirms once payment is verified."
 
-**3. Make Scantopay reachable**
-- Expose the Scantopay server publicly (tunnel e.g. `cloudflared tunnel --url http://localhost:6100`,
+**3. Make ScanPay reachable**
+- Expose the ScanPay server publicly (tunnel e.g. `cloudflared tunnel --url http://localhost:6100`,
   or deploy it). Note the `https://…` URL = `SCANTOPAY_URL`.
 
-**4. Start Scantopay with the Shopify env**
+**4. Start ScanPay with the Shopify env**
 ```bash
 cp integrations/shopify/.env.example integrations/shopify/.env   # fill in store + token
 node --env-file=integrations/shopify/.env server.js
@@ -42,9 +42,9 @@ node --env-file=integrations/shopify/.env server.js
   (Or add it as a theme app-embed on the Thank-you / Order-status page.)
 
 ## Test
-1. Place a test order on Shopify, choose **UPI (Scantopay)**.
+1. Place a test order on Shopify, choose **UPI (ScanPay)**.
 2. On the order-status page the UPI QR appears → pay (or a ₹1 test) → enter the UTR.
-3. Approve in the Scantopay CRM → the Shopify order flips to **Paid** automatically.
+3. Approve in the ScanPay CRM → the Shopify order flips to **Paid** automatically.
 
 ## How it's wired (code)
 - `lib/shopify.js` — Admin API client (`orderMarkAsPaid`).

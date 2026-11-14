@@ -18,7 +18,7 @@ import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Forwards bank SMS / bank-app notifications to Scantopay as raw text. The server
+ * Forwards bank SMS / bank-app notifications to ScanPay as raw text. The server
  * parses and matches them, so bank-format fixes never need a new app build.
  * Shows a "Payment received" notification when the server confirms an order.
  * Failed sends (no network / server down) wait in a small on-phone queue.
@@ -151,7 +151,7 @@ object CreditReporter {
         return true
     }
 
-    const val UNLINKED_MSG = "This phone was unlinked from Scan Oye. Scan a new pairing QR to connect again."
+    const val UNLINKED_MSG = "This phone was unlinked from ScanPay. Scan a new pairing QR to connect again."
 
     private fun notify(ctx: Context, title: String, text: String) {
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

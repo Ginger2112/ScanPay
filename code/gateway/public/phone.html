@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Scan Oye phone</title>
+<title>ScanPay phone</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Scan Oye">
+<meta name="apple-mobile-web-app-title" content="ScanPay">
 <link rel="stylesheet" href="/scanoye.css">
 </head><body>
 <!-- Shown inside the Android app after pairing: /phone#<phone token>. The token never goes in the URL sent to the server. -->
@@ -39,7 +39,7 @@ const TOKEN = decodeURIComponent(location.hash.slice(1));
 async function load() {
   try {
     const r = await fetch('/api/observer/summary', { headers: { 'x-observer-token': TOKEN } });
-    if (!r.ok) throw new Error(r.status === 401 ? 'This phone is no longer connected. Scan a fresh QR from the merchant page.' : 'Can\'t reach Scan Oye right now.');
+    if (!r.ok) throw new Error(r.status === 401 ? 'This phone is no longer connected. Scan a fresh QR from the merchant page.' : 'Can\'t reach ScanPay right now.');
     const s = await r.json();
     $('#err').textContent = '';
     $('#mn').textContent = s.merchant.name;

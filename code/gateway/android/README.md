@@ -1,12 +1,12 @@
-# Scantopay Observer (Android)
+# ScanPay Observer (Android)
 
 Native Kotlin app that does two jobs:
 1. **Payment detector (primary)** — reads incoming **bank SMS** (and bank-app push
-   as fallback), parses Axis UPI credit alerts, and reports them to the Scantopay
+   as fallback), parses Axis UPI credit alerts, and reports them to the ScanPay
    server, which confirms the matching order. This is the *main* detector:
    **Axis sends UPI account credits by SMS, not email**, so the Gmail observer
    can't see them — this app can.
-2. **Mobile dashboard** — a WebView of the Scantopay CRM (`/dashboard`) plus a
+2. **Mobile dashboard** — a WebView of the ScanPay CRM (`/dashboard`) plus a
    "Payment received" push whenever a credit is confirmed.
 
 ## Build & install (Android Studio)
@@ -22,7 +22,7 @@ Native Kotlin app that does two jobs:
    (phone and PC on the same Wi-Fi). Enter the **observer token** (matches the
    server's `OBSERVER_TOKEN`, default `dev-observer-token`).
 2. Tap **Connect** → grant **SMS** and **Notifications** permissions.
-3. (Optional) Tap **Enable push access** → turn on Scantopay in the
+3. (Optional) Tap **Enable push access** → turn on ScanPay in the
    notification-access list (lets it read the Axis app's push as a fallback).
 4. The CRM dashboard loads; a persistent "observer running" notification appears.
 

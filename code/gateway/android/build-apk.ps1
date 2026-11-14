@@ -1,4 +1,4 @@
-# Builds the Scantopay Observer debug APK on a fresh Windows PC.
+# Builds the ScanPay Observer debug APK on a fresh Windows PC.
 # Installs JDK 17, Android SDK (cmdline-tools, platform 34, build-tools) and Gradle
 # into one folder (no system-wide install), then runs `gradle assembleDebug`.
 # Re-running skips anything already downloaded.

@@ -1,20 +1,20 @@
 <!--
-  Scantopay UPI — Shopify order-status embed.
+  ScanPay UPI — Shopify order-status embed.
   Paste this into: Shopify admin → Settings → Checkout → "Order status page"
   additional scripts (or add as a theme app-embed on the Thank-you / Order-status page).
 
-  It runs only for orders whose payment method is your manual "UPI (Scantopay)"
-  method, creates a Scantopay order linked to this Shopify order, and shows the
-  QR + "enter UTR" flow inline. When you approve in the Scantopay CRM, Scantopay
+  It runs only for orders whose payment method is your manual "UPI (ScanPay)"
+  method, creates a ScanPay order linked to this Shopify order, and shows the
+  QR + "enter UTR" flow inline. When you approve in the ScanPay CRM, ScanPay
   marks THIS Shopify order as paid automatically.
 
-  >>> Set SCANTOPAY_URL to your Scantopay public URL (tunnel or deployed host). <<<
+  >>> Set SCANTOPAY_URL to your ScanPay public URL (tunnel or deployed host). <<<
 -->
 <div id="scantopay-upi"></div>
 <script>
 (function () {
   var SCANTOPAY_URL = "https://YOUR-SCANTOPAY-URL";   // <-- set me
-  var MANUAL_METHOD = "UPI (Scantopay)";              // must match your manual payment method name
+  var MANUAL_METHOD = "UPI (ScanPay)";              // must match your manual payment method name
 
   // Shopify exposes order context on the order-status page.
   var co = window.Shopify && window.Shopify.checkout;
@@ -55,6 +55,6 @@
       '<iframe src="' + SCANTOPAY_URL + '/checkout?id=' + order.id +
       '" style="width:100%;height:760px;border:0;display:block"></iframe></div>';
   })
-  .catch(function (e) { console.log("Scantopay embed error", e); });
+  .catch(function (e) { console.log("ScanPay embed error", e); });
 })();
 </script>

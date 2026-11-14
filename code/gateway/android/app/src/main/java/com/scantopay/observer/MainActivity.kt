@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         val code = data.getQueryParameter("code")
         val host = server?.let { Uri.parse(it).host }
         if (server == null || code.isNullOrBlank() || host.isNullOrBlank() || !isAllowedServer(server)) {
-            Toast.makeText(this, "This pairing link isn't valid. Use the QR from your Scan Oye page.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "This pairing link isn't valid. Use the QR from your ScanPay page.", Toast.LENGTH_LONG).show()
             return false
         }
         // Same one-time code again (replayed link): it's already been used here, ignore it.
@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         else "This phone will forward bank and UPI credit alerts to that server."
         if (isFinishing || isDestroyed) return true
         AlertDialog.Builder(this)
-            .setTitle("Connect this phone to Scan Oye at $host?")
+            .setTitle("Connect this phone to ScanPay at $host?")
             .setMessage(msg)
             .setCancelable(false)
             .setPositiveButton("Connect") { _, _ -> pairNow(server, code) }

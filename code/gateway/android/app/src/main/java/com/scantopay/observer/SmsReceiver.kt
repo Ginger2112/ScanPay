@@ -6,7 +6,7 @@ import android.content.Intent
 import android.provider.Telephony
 import java.util.concurrent.atomic.AtomicInteger
 
-/** Primary detector: forwards incoming bank SMS to Scantopay (server parses + matches). */
+/** Primary detector: forwards incoming bank SMS to ScanPay (server parses + matches). */
 class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
